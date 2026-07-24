@@ -1,0 +1,178 @@
+<!-- Copyright (c) 2026 Ambir Technology, Inc. -->
+<!-- Licensed under the MIT License. See LICENSE file in the project root. -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scanner Diagnostic Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .scanner-item { 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .scanner-item:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Scanner Bridge Diagnostic Tool</h1>
+    
+    <div class="section">
+        <h2>Step 1: Get Available Scanners</h2>
+        <button onclick="getScanners()">Get Scanner List</button>
+        <div id="scannerList"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 2: Test Opening Scanner</h2>
+        <input type="text" id="scannerName" placeholder="Enter exact scanner name" style="width: 300px;">
+        <button onclick="testOpenScanner()">Test Open</button>
+        <div id="openResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Step 3: Check Status</h2>
+        <button onclick="checkStatus()">Get Status</button>
+        <div id="statusResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Activity Log</h2>
+        <div id="log" style="max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        const serviceUrl = 'https://localhost:53052';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logDiv.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function sendCommand(method, params = null) {
+            try {
+                const response = await fetch(`${serviceUrl}/api/twain`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        kind: 'twainlocalscanner',
+                        method: method,
+                        params: params
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        async function getScanners() {
+            log('Fetching scanner list...');
+            try {
+                const response = await sendCommand('getSources');
+                console.log('getSources response:', response);
+                
+                if (response.results && response.results.success) {
+                    const scanners = response.data.availableSources;
+                    log(`Found ${scanners.length} scanner(s)`, 'success');
+                    
+                    const listDiv = document.getElementById('scannerList');
+                    listDiv.innerHTML = '<h3>Available Scanners (click to test):</h3>';
+                    
+                    scanners.forEach(scanner => {
+                        const div = document.createElement('div');
+                        div.className = 'scanner-item';
+                        div.innerHTML = `
+                            <strong>Name:</strong> "${scanner.name}"<br>
+                            <strong>Manufacturer:</strong> ${scanner.manufacturer || 'N/A'}<br>
+                            <strong>Model:</strong> ${scanner.model || 'N/A'}
+                        `;
+                        div.onclick = () => {
+                            document.getElementById('scannerName').value = scanner.name;
+                            log(`Selected: ${scanner.name}`, 'info');
+                        };
+                        listDiv.appendChild(div);
+                    });
+                } else {
+                    log('Failed to get scanners', 'error');
+                }
+            } catch (error) {
+                log(`Error getting scanners: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testOpenScanner() {
+            const scannerName = document.getElementById('scannerName').value;
+            if (!scannerName) {
+                log('Please enter a scanner name', 'error');
+                return;
+            }
+            
+            log(`Testing open: "${scannerName}"...`);
+            try {
+                const response = await sendCommand('openSource', { sourceName: scannerName });
+                console.log('openSource response:', response);
+                
+                const resultDiv = document.getElementById('openResult');
+                resultDiv.innerHTML = '<h3>Open Response:</h3><pre>' + 
+                    JSON.stringify(response, null, 2) + '</pre>';
+                
+                if (response.results && response.results.success) {
+                    log('✓ Scanner opened successfully!', 'success');
+                } else {
+                    const errorMsg = response.data?.message || 'Unknown error';
+                    log(`✗ Failed to open: ${errorMsg}`, 'error');
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkStatus() {
+            log('Checking status...');
+            try {
+                const response = await sendCommand('getStatus');
+                console.log('getStatus response:', response);
+                
+                const resultDiv = document.getElementById('statusResult');
+                resultDiv.innerHTML = '<h3>Status Response:</h3><pre>' + 
+                    JSON.stringify(response, null, 2) + '</pre>';
+                
+                if (response.results && response.results.success) {
+                    const status = response.data.scannerStatus;
+                    log(`Online: ${status.isOnline}, Paper: ${status.isPaperLoaded}, Open: ${status.isSourceOpen}`, 'success');
+                } else {
+                    log('Failed to get status', 'error');
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-load scanners on page load
+        window.onload = () => {
+            log('Diagnostic tool ready', 'info');
+            getScanners();
+        };
+    </script>
+</body>
+</html>
