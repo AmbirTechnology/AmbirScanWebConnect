@@ -96,12 +96,39 @@ class ASWCNScannerBridge {
     }
 
     /**
+     * Unwrap the data payload from a TWAIN Direct response.
+     *
+     * Handler-level failures (e.g. desktop app disconnected, pipe timeout)
+     * come back as HTTP 200 with a results object ({ success: false, code })
+     * and NO data payload. Blindly reading response.data.* in that case throws
+     * a cryptic "cannot read properties of undefined" error. This surfaces the
+     * real reason instead.
+     *
+     * @private
+     * @param {object} response - Parsed TWAIN Direct response
+     * @returns {object} The data payload (guaranteed non-null)
+     */
+    _unwrapData(response) {
+        if (response?.results && response.results.success === false) {
+            const msg = response.data?.message
+                || response.results.code
+                || 'The scanner service returned an error';
+            throw new Error(msg);
+        }
+        if (!response || !response.data) {
+            throw new Error('No data returned from the scanner service. '
+                + 'The desktop application may be disconnected or the request timed out.');
+        }
+        return response.data;
+    }
+
+    /**
      * Get list of available scanners
      * @returns {Promise<string[]>} List of scanner names
      */
     async getSources() {
         const response = await this.sendCommand('getSources');
-        return response.data.availableSources || [];
+        return this._unwrapData(response).availableSources || [];
     }
 
     /**
@@ -128,7 +155,7 @@ class ASWCNScannerBridge {
      */
     async getCapabilities(sourceName) {
         const response = await this.sendCommand('getCapabilities', { sourceName });
-        return response.data.capabilities;
+        return this._unwrapData(response).capabilities;
     }
 
     /**
@@ -137,7 +164,7 @@ class ASWCNScannerBridge {
      */
     async getStatus() {
         const response = await this.sendCommand('getStatus');
-        return response.data.scannerStatus;
+        return this._unwrapData(response).scannerStatus;
     }
 
     /**
