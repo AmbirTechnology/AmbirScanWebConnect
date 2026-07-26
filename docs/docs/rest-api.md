@@ -188,10 +188,15 @@ Perform a scan. Handles opening the scanner, scanning, and returning results.
     "barcodeReadingEnabled": false,
     "barcodeFilterLevel": "Normal",
     "ocrEnabled": false,
-    "requestTimeoutSeconds": 0
+    "requestTimeoutSeconds": 0,
+    "transferMode": "Auto"
   }
 }
 ```
+
+`transferMode` is optional (`"Auto"`, `"Native"` or `"Buffered"`) and rarely needed. Omit
+it to use the mode configured in the desktop app, which defaults to native transfer; see
+[Transfer Mode](./sdk-reference.md#transfer-mode).
 
 **Response (200):**
 
@@ -308,7 +313,8 @@ Enable auto-scan mode. The scanner watches its paper sensor and automatically ca
     "barcodeReadingEnabled": false,
     "barcodeFilterLevel": "Normal",
     "ocrEnabled": false,
-    "requestTimeoutSeconds": 0
+    "requestTimeoutSeconds": 0,
+    "transferMode": "Auto"
   }
 }
 ```

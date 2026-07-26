@@ -102,6 +102,38 @@ ASWCNCertManager.exe install
 
 ---
 
+## Sheared, Colour-Fringed, Black or Uncropped Pages
+
+**Symptom:** Scanned pages come back slanted like a parallelogram, show red/green/blue
+edges and horizontal streaking, arrive entirely black, or ignore auto-crop and return a
+full page. The same page looks fine in the scanner's own software.
+
+**Explanation:** These are all symptoms of buffered TWAIN transfer. In that mode the
+driver hands back the image in strips for TWAIN to reassemble, and some drivers describe
+those strips incorrectly, so each row of pixels ends up offset from the one above it.
+
+**Solution:** Use native transfer, which is the default.
+
+If you are seeing this, something has overridden that default. Check, in order:
+
+1. The `transferMode` your application sends with the scan request. Remove it, or set it
+   explicitly:
+
+   ```javascript
+   const images = await scanner.scan({ transferMode: 'Native' });
+   ```
+
+2. The machine-wide setting in the desktop app under
+   **Settings → Scanner Defaults → TWAIN Transfer Mode**. It should be `Native` or `Auto`.
+
+3. The installed version. Releases before transfer mode was configurable always used
+   buffered transfer and ignore the parameter. Confirm with `getVersion()`.
+
+If native transfer is confirmed and pages are still malformed, the problem is elsewhere —
+report the scanner model to support.
+
+---
+
 ## Multiple Browser Tabs
 
 **Symptom:** Scanning works in one tab but fails in another.

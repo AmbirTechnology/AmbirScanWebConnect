@@ -190,6 +190,40 @@ const images = await scanner.scan({
 | `barcodeFilterLevel` | `string` | `'Normal'` | `'Low'`, `'Normal'`, `'High'`, `'VeryHigh'` |
 | `ocrEnabled` | `boolean` | `false` | Enable OCR text extraction ([license required](https://ambir.com/developers/)) |
 | `requestTimeoutSeconds` | `number` | `0` | Timeout in seconds (0 = no timeout) |
+| `transferMode` | `string` | *(desktop setting, native)* | `'Auto'`, `'Native'`, or `'Buffered'`. Rarely needed. See [Transfer Mode](#transfer-mode) |
+
+#### Transfer Mode
+
+`transferMode` selects how TWAIN moves image data from the scanner driver into the
+application. **Native transfer is the default and is the right choice for almost every
+scanner** — you should not normally need to set this parameter at all.
+
+| Value | Behaviour |
+|-------|-----------|
+| `'Auto'` | Use the configured default, which is native transfer |
+| `'Native'` | The driver returns a complete image in one transfer |
+| `'Buffered'` | The driver returns strips that TWAIN reassembles |
+
+Buffered transfer is offered only as an escape hatch. Several scanner drivers reassemble
+those strips incorrectly, which shows up as **sheared pages, colour fringing, blank or
+black pages, or auto-crop being silently ignored**. Set `'Buffered'` only if a specific
+scanner is documented to require it, or if support asks you to.
+
+Omit the parameter to use whatever is configured in the desktop app under
+**Settings → Scanner Defaults → TWAIN Transfer Mode** (`Native` out of the box). A value
+sent with the scan request overrides that setting for the one scan.
+
+```javascript
+// Rarely needed - only for a scanner that specifically requires buffered transfer
+const images = await scanner.scan({ transferMode: 'Buffered' });
+```
+
+:::note
+`transferMode` was added in a later release. Installations older than that ignore the
+parameter instead of failing, so a scan that specifies it still succeeds — just with the
+scanner's previous transfer mode. Check the installed version with `getVersion()` if the
+setting appears to have no effect.
+:::
 
 #### Scanned Image Response
 

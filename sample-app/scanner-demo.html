@@ -207,6 +207,16 @@
             </div>
 
             <div class="control-group">
+                <label for="transferMode">Transfer Mode:</label>
+                <select id="transferMode" title="Leave on Default (native) unless a scanner specifically needs buffered transfer.">
+                    <option value="" selected>Default (desktop setting, native)</option>
+                    <option value="Auto">Auto</option>
+                    <option value="Native">Native</option>
+                    <option value="Buffered">Buffered</option>
+                </select>
+            </div>
+
+            <div class="control-group">
                 <button onclick="startScan()" id="scanBtn" disabled>Start Scan</button>
                 <button onclick="checkStatus()">Check Status</button>
             </div>
@@ -315,7 +325,12 @@
                     outputFormat: 'png',
                     requestTimeoutSeconds: 0,
                     barcodeReadingEnabled: document.getElementById('barcodeReading').checked,
-                    barcodeFilterLevel: document.getElementById('barcodeFilter').value
+                    barcodeFilterLevel: document.getElementById('barcodeFilter').value,
+                    // Only sent when explicitly chosen, so "Default" behaves exactly like a
+                    // client that predates this option.
+                    ...(document.getElementById('transferMode').value && {
+                        transferMode: document.getElementById('transferMode').value
+                    })
                 });
 
                 log(`Scan completed: ${images.length} page(s) scanned`, 'success');

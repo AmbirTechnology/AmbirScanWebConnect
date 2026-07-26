@@ -168,6 +168,11 @@ class ASWCNScannerBridge {
      * @param {boolean} scanParams.autoRotate - Enable auto-rotation
      * @param {boolean} scanParams.autoDeskew - Enable auto-deskew
      * @param {boolean} scanParams.autoCrop - Enable auto-crop
+     * @param {string} [scanParams.transferMode] - TWAIN transfer mode: 'Auto', 'Native' or
+     *        'Buffered'. Omit to use the mode configured in the desktop app, which defaults to
+     *        native. Buffered transfer returns malformed images on several scanner models
+     *        (shearing, colour fringing, blank pages), so only set 'Buffered' if a scanner
+     *        specifically requires it. Installs older than this option ignore it.
      * @returns {Promise<object[]>} Array of scanned images
      */
     async scan(scanParams = {}) {
