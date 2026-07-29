@@ -546,28 +546,43 @@
             }
         }
 
+        // Object URLs handed out by displayImages, so the next render can release
+        // them instead of leaking a page-sized Blob per card.
+        let imageObjectUrls = [];
+
+        function base64ToBlob(base64, mimeType) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: mimeType });
+        }
+
         function displayImages(images) {
             const container = document.getElementById('imagesContainer');
+            imageObjectUrls.forEach(u => URL.revokeObjectURL(u));
+            imageObjectUrls = [];
             container.innerHTML = '';
 
-            images.forEach((image, index) => {
+            images.forEach((image) => {
                 const card = document.createElement('div');
                 card.className = 'image-card';
-                
+
+                // Decode once into a Blob URL and use it for both the thumbnail and
+                // the open-in-new-tab click. A data: URL would keep a second full
+                // copy of the page as a string, and the click handler would pin
+                // base64Data for the card's lifetime. A large batch is easily
+                // hundreds of MB of Base64, which is enough to take the tab down.
+                // Nothing here holds a reference to image after this iteration.
+                const url = URL.createObjectURL(base64ToBlob(image.base64Data, image.mimeType));
+                imageObjectUrls.push(url);
+
                 const img = document.createElement('img');
-                img.src = `data:${image.mimeType};base64,${image.base64Data}`;
-                
+                img.src = url;
                 img.alt = `Page ${image.pageNumber}`;
 
-                img.onclick = () => {
-                    const url = URL.createObjectURL(
-                        new Blob(
-                            [Uint8Array.from(atob(image.base64Data), c => c.charCodeAt(0))],
-                            { type: `${image.mimeType}` }
-                        )
-                    );
-                    window.open(url, '_blank');
-                };
+                img.onclick = () => window.open(url, '_blank');
 
                 const info = document.createElement('div');
                 info.className = 'image-info';
