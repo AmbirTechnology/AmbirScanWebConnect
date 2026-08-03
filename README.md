@@ -20,7 +20,7 @@ AmbirScan Web Connect enables web applications to control local TWAIN scanners t
 
 Want to test scanning without building your own web app? A hosted demo is available:
 
-1. **[Download and install AmbirScan Web Connect](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe)**
+1. **[Download and install AmbirScan Web Connect](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)**
 2. **Browse to [https://ambirscanwebconnect.azurewebsites.net](https://ambirscanwebconnect.azurewebsites.net)**
 3. **Select your scanner and scan** — the web app communicates with the scanner service running on your machine
 
@@ -30,7 +30,7 @@ This is the fastest way to verify your installation is working before integratin
 
 ### 1. Install AmbirScan Web Connect
 
-[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe) and run it on each client machine that has a scanner connected.
+[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe) and run it on each client machine that has a scanner connected.
 
 The installer will set up:
 - **AmbirScan Web Connect Service** — HTTPS REST API on `localhost:53052`
@@ -105,7 +105,7 @@ await scanner.closeSource();
 
 ### Installation Steps
 
-1. **[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe)**
+1. **[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)**
 2. **Run the installer** as Administrator
 3. **Complete the setup wizard** — the installer will:
    - Install the Windows Service and Desktop Application
@@ -410,7 +410,7 @@ OCR text extraction and barcode decoding are premium features that require addit
 ### Code License
 
 - **SDK and Sample Code** (`sdk/` and `sample-app/`): [MIT License](LICENSE) — free to use, modify, and integrate into your applications
-- **Windows Installer and Binaries**: [SDK License and Subscription Agreement](EULA.md) — see EULA.md for terms. [Download installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe)
+- **Windows Installer and Binaries**: [SDK License and Subscription Agreement](EULA.md) — see EULA.md for terms. [Download installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)
 - **Third-Party Components:** See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for open source license notices
 
 ### Open Source Components

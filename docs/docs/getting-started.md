@@ -23,7 +23,7 @@ Simply install AmbirScan Web Connect (Step 1 below), then open the link above in
 
 ## Step 1: Install AmbirScan Web Connect
 
-[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe) and run it on each client machine that has a scanner connected.
+[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe) and run it on each client machine that has a scanner connected.
 
 The installer will set up:
 - **AmbirScan Web Connect Service** — HTTPS REST API on `localhost:53052`

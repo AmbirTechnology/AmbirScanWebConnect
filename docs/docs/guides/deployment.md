@@ -8,7 +8,7 @@ How to deploy AmbirScan Web Connect to your end users' machines.
 
 ## Installer Distribution
 
-[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.12.exe) and distribute it to your end users. The installer handles all setup automatically.
+[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe) and distribute it to your end users. The installer handles all setup automatically.
 
 ### What the Installer Does
 
