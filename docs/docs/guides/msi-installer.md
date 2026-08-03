@@ -225,7 +225,7 @@ Use this checklist when deploying to a new client machine:
 - [ ] **Install certificate** — `ASWCNCertManager.exe install` (from elevated prompt)
 - [ ] **Verify certificate** — `ASWCNCertManager.exe status` (all items show checkmarks)
 - [ ] **Start service** — `net start AmbirScanWebConnect` (or verify it's running in `services.msc`)
-- [ ] **Start Desktop App** — Launch `AmbirWebScan.exe`
+- [ ] **Start Desktop App** — The installer does not launch it. Use the Start Menu shortcut at `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect`, or run `AmbirWebScan.exe` directly
 - [ ] **Verify connectivity** — Open `https://localhost:53052/health` in browser
 - [ ] **Test scanner** — Use the Desktop App's Test Scan or the [diagnostic page](https://github.com/AmbirTechnology/AmbirScanWebConnect/blob/main/sample-app/scanner-diagnostic.html) to confirm scanning works
 - [ ] **Test from web app** — Verify the end-to-end flow from the web application

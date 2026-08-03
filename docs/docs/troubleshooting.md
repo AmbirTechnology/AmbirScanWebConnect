@@ -11,7 +11,7 @@ Common issues and their solutions.
 **Symptom:** `checkServiceStatus()` returns `false`, or requests to `https://localhost:53052` fail.
 
 **Solutions:**
-1. Check that the **AmbirScan Web Connect Desktop App** is running (look for the icon in the Windows system tray)
+1. Check that the **AmbirScan Web Connect Desktop App** is running (look for the icon in the Windows system tray). It is **not** started by the installer, so on a machine that was just installed you have to start it from `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect` (it starts on its own at every sign-in after that)
 2. Check that the **Windows Service** is running:
    - Open **Services** (Win+R > `services.msc`)
    - Look for "AmbirScan Web Connect Service"
@@ -82,7 +82,7 @@ ASWCNCertManager.exe install
 **Symptom:** API returns HTTP 503 with "Desktop application not connected".
 
 **Solutions:**
-1. The Desktop App may have been closed — restart it from the Start Menu
+1. The Desktop App may never have been started, or may have been closed — start it from the Start Menu shortcut at `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect`. This is expected immediately after a fresh install, since the installer does not launch it
 2. If the Desktop App is running but the service can't connect, restart both:
    - Close the Desktop App (right-click system tray icon > Exit)
    - Restart the service (`services.msc` > Restart)

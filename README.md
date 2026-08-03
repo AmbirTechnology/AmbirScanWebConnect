@@ -112,7 +112,13 @@ await scanner.closeSource();
    - Generate and install a self-signed HTTPS certificate
    - Configure Windows Firewall rules for `localhost:53052`
    - Register the Windows Service for automatic startup
-4. **Verify installation:**
+4. **Start the Desktop App** — the installer does not launch it. It starts automatically at every subsequent sign-in, but after the first install start it once from the Start Menu shortcut:
+
+   ```
+   C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect
+   ```
+
+5. **Verify installation:**
    - The Desktop App icon should appear in the Windows system tray
    - Navigate to `https://localhost:53052/health` in your browser — you should see a health check response
 

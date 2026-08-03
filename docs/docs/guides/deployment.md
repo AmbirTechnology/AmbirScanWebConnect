@@ -34,9 +34,23 @@ AmbirScanWebConnect.msi /quiet /norestart
 
 Use **Windows Add/Remove Programs** (Settings > Apps > Installed apps) to uninstall. The uninstaller removes the service, desktop app, certificate, and firewall rules.
 
+## Starting the Desktop App
+
+The installer registers the Desktop App to start automatically at sign-in, but it does **not** launch it as part of the install. On a freshly installed machine the Desktop App is not running until the user either signs in again or starts it manually from the Start Menu shortcut:
+
+```
+C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect
+```
+
+The shortcut is installed for all users, so **AmbirScan Web Connect** is also findable by name in the Start Menu.
+
+:::caution
+The Windows Service starts immediately after install, so `https://localhost:53052/health` responds right away — but it reports **Degraded** and scanner endpoints return HTTP 503 until the Desktop App is running. If you are scripting a deployment, launch the Desktop App (or prompt the user to sign out and back in) before running any post-install scan test.
+:::
+
 ## Post-Installation Verification
 
-After installation, verify the setup:
+After installation and starting the Desktop App, verify the setup:
 
 1. **System tray** — The AmbirScan Web Connect Desktop App icon should be visible
 2. **Health check** — Navigate to `https://localhost:53052/health` in a browser

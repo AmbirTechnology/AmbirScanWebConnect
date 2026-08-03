@@ -13,7 +13,11 @@ The Desktop App runs in the **Windows system tray** (notification area). To open
 1. Locate the AmbirScan icon in the system tray (you may need to click the **^** arrow to expand hidden icons)
 2. **Double-click** the tray icon, or **right-click** and select **Open**
 
-If the app is not running, launch it from the Start Menu or from the installation directory (`AmbirWebScan.exe`).
+If the app is not running, launch it from the Start Menu shortcut at `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect`, or run `AmbirWebScan.exe` from the installation directory.
+
+:::note
+The installer does not start the Desktop App, so on a machine that has just been installed and not yet signed out of, it will not be running or present in the tray. Start it from the shortcut above.
+:::
 
 :::info Single Instance
 Only one instance of the Desktop App can run at a time. If you try to launch a second instance, you'll see a message indicating it's already running.

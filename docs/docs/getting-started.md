@@ -12,7 +12,7 @@ Want to start scanning immediately without writing any code? A hosted demo appli
 
 **[https://ambirscanwebconnect.azurewebsites.net](https://ambirscanwebconnect.azurewebsites.net)**
 
-Simply install AmbirScan Web Connect (Step 1 below), then open the link above in your browser. Select your scanner and start scanning — no web app setup required. This is the fastest way to verify your installation and explore the scanning features.
+Simply install AmbirScan Web Connect and start the Desktop App (Steps 1 and 2 below), then open the link above in your browser. Select your scanner and start scanning — no web app setup required. This is the fastest way to verify your installation and explore the scanning features.
 
 ## Prerequisites
 
@@ -35,7 +35,21 @@ The installer will set up:
 The installer requires Administrator privileges for certificate and service installation.
 :::
 
-## Step 2: Verify the Installation
+## Step 2: Start the Desktop App
+
+The installer does not launch the Desktop App. It starts automatically at every subsequent sign-in, but after the first install you need to start it once yourself, from the Start Menu shortcut:
+
+```
+C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AmbirScan Web Connect
+```
+
+Or search for **AmbirScan Web Connect** in the Start Menu. Once it starts, its icon appears in the Windows system tray.
+
+:::note
+Until the Desktop App is running, the service has nothing to talk to and scanner requests return HTTP 503.
+:::
+
+## Step 3: Verify the Installation
 
 Open a browser and navigate to:
 
@@ -43,9 +57,9 @@ Open a browser and navigate to:
 https://localhost:53052/health
 ```
 
-You should see a JSON response indicating the service is healthy. The Desktop App icon should appear in the Windows system tray.
+You should see a JSON response indicating the service is healthy.
 
-## Step 3: Add the JavaScript SDK
+## Step 4: Add the JavaScript SDK
 
 Copy [`aswcn-scanner-bridge.js`](https://github.com/AmbirTechnology/AmbirScanWebConnect/blob/main/sdk/js/aswcn-scanner-bridge.js) into your web application:
 
@@ -53,7 +67,7 @@ Copy [`aswcn-scanner-bridge.js`](https://github.com/AmbirTechnology/AmbirScanWeb
 <script src="path/to/aswcn-scanner-bridge.js"></script>
 ```
 
-## Step 4: Scan Your First Document
+## Step 5: Scan Your First Document
 
 ```javascript
 // Initialize the scanner bridge
@@ -92,7 +106,7 @@ images.forEach(image => {
 await scanner.closeSource();
 ```
 
-## Step 5: Explore the Sample App
+## Step 6: Explore the Sample App
 
 The repository includes a complete working demo in the [`sample-app/`](https://github.com/AmbirTechnology/AmbirScanWebConnect/tree/main/sample-app) directory:
 
