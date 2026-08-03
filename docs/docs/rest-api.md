@@ -78,8 +78,8 @@ available; the desktop version is included only when the desktop app is connecte
 {
   "success": true,
   "productName": "AmbirScan Web Connect",
-  "serviceVersion": "4.0.0.10",
-  "desktopVersion": "4.0.0.10",
+  "serviceVersion": "4.0.0.14",
+  "desktopVersion": "4.0.0.14",
   "desktopAppConnected": true,
   "timestamp": "2026-02-25T12:00:00Z"
 }

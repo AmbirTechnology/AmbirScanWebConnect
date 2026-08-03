@@ -141,7 +141,7 @@ The installer creates standard MSI uninstall registry entries:
 ```
 HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\{58CCE509-0ECB-4E65-B52F-3DF5E070CC44}
   DisplayName: AmbirScan Web Connect
-  DisplayVersion: 4.0.0.1
+  DisplayVersion: 4.0.0.14
   Publisher: Ambir Technology, Inc.
   InstallLocation: C:\Program Files (x86)\ASWCNextgen\
 ```
