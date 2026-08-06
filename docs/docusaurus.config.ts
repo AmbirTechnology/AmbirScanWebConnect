@@ -7,10 +7,6 @@ const config: Config = {
   tagline: 'Enable browser-based scanning with Ambir TWAIN scanners',
   favicon: 'img/favicon.ico',
 
-  // Default social preview image. Docusaurus already emits
-  // twitter:card=summary_large_image, which renders blank without this.
-  image: 'img/social-card.png',
-
   url: 'https://ambirtechnology.github.io',
   baseUrl: '/AmbirScanWebConnect/',
 
@@ -43,6 +39,9 @@ const config: Config = {
   ],
 
   themeConfig: {
+    // Default social preview image. Docusaurus already emits
+    // twitter:card=summary_large_image, which renders blank without this.
+    image: 'img/social-card.png',
     navbar: {
       title: 'AmbirScan Web Connect',
       logo: {
