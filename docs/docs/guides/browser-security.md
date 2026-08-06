@@ -1,5 +1,7 @@
 ---
 sidebar_position: 2
+description: How AmbirScan Web Connect handles CORS, Chrome Private Network Access, and HTTPS certificate trust for localhost scanning.
+keywords: [CORS localhost, Private Network Access, PNA header, localhost HTTPS certificate, browser security scanning]
 ---
 
 # Browser Security

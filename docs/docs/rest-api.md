@@ -1,5 +1,7 @@
 ---
 sidebar_position: 5
+description: Full REST API reference for the AmbirScan Web Connect local scanner service — list scanners, query capabilities, scan, auto-scan, and check health over HTTPS on localhost.
+keywords: [scanner REST API, TWAIN Direct, localhost scanning API, document scanner HTTP API]
 ---
 
 # REST API Reference

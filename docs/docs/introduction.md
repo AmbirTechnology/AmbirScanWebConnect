@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 slug: /
+description: AmbirScan Web Connect lets web applications scan documents from local TWAIN scanners through a JavaScript SDK and a local REST API — no browser plugins or extensions required.
+keywords: [browser based scanning, web scanning, TWAIN, document scanning, JavaScript scanner SDK, scan from browser]
 ---
 
 # Introduction

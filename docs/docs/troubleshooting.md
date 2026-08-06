@@ -1,5 +1,7 @@
 ---
 sidebar_position: 6
+description: Fixes for common AmbirScan Web Connect problems — scanner not found, HTTP 503 from the service, certificate warnings, and browser connection failures.
+keywords: [scanner not found, HTTP 503 scanner service, TWAIN troubleshooting, localhost certificate error]
 ---
 
 # Troubleshooting

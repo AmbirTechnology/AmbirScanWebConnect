@@ -1,5 +1,7 @@
 ---
 sidebar_position: 4
+description: Enable hands-free auto-scan so the scanner's paper sensor drives the workflow, and stream pages to the browser as they are captured.
+keywords: [auto scan, hands free scanning, paper sensor, batch scanning browser, server sent events scanning]
 ---
 
 # Auto Scan

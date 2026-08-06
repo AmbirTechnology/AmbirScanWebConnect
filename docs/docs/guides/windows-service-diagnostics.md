@@ -1,5 +1,7 @@
 ---
 sidebar_position: 5
+description: Diagnose the AmbirScan Web Connect Windows Service — health endpoint, log locations, named pipe connectivity, and localhost:53052 issues.
+keywords: [Windows Service diagnostics, named pipe, health endpoint, localhost 53052, service logs]
 ---
 
 # Windows Service Diagnostics

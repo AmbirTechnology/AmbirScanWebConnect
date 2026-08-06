@@ -1,5 +1,7 @@
 ---
 sidebar_position: 2
+description: Install AmbirScan Web Connect, start the Desktop App, and run your first browser-based scan with a few lines of JavaScript.
+keywords: [install scanner SDK, browser scanning quickstart, TWAIN scanner setup, scan documents from web app]
 ---
 
 # Getting Started

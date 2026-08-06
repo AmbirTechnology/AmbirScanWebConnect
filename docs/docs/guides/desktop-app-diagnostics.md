@@ -1,5 +1,7 @@
 ---
 sidebar_position: 4
+description: Use the Desktop App's diagnostic interface to troubleshoot scanner detection, TWAIN sources, and connectivity on a client machine.
+keywords: [scanner diagnostics, TWAIN source troubleshooting, desktop app logs, system tray scanner app]
 ---
 
 # Desktop App Diagnostics

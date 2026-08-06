@@ -63,8 +63,8 @@ export default function Home(): JSX.Element {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title="Home"
-      description="Enable browser-based scanning with Ambir TWAIN scanners">
+      title="Browser-Based TWAIN Scanning"
+      description="Scan documents directly from a web browser with Ambir TWAIN scanners. A JavaScript SDK and local REST API for resolution, color mode, duplex, barcode and OCR control — no browser plugins required.">
       <HomepageHeader />
       <main>
         <Features />

@@ -1,5 +1,7 @@
 ---
 sidebar_position: 7
+description: What the AmbirScan Web Connect MSI installer deploys, how to run standard and silent installations, and how to troubleshoot install failures.
+keywords: [MSI installer, silent install, unattended deployment, TWAIN runtime install, scanner installer]
 ---
 
 # MSI Installer

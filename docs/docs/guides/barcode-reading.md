@@ -1,5 +1,7 @@
 ---
 sidebar_position: 3
+description: Detect and decode barcodes from scanned pages, including supported symbologies and how results are returned to the browser.
+keywords: [barcode scanning, barcode decoding, document separation barcode, QR code scanner, symbologies]
 ---
 
 # Barcode Reading

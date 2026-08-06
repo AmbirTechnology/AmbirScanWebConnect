@@ -1,5 +1,7 @@
 ---
 sidebar_position: 6
+description: Use ASWCNCertManager.exe to install the localhost HTTPS certificate, configure Windows Firewall, and set up URL reservations.
+keywords: [ASWCNCertManager, self-signed certificate, localhost HTTPS, URL reservation, Windows Firewall scanner]
 ---
 
 # Certificate Manager

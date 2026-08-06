@@ -1,5 +1,7 @@
 ---
 sidebar_position: 1
+description: Deploy AmbirScan Web Connect to end-user machines, including silent installation, starting the Desktop App, and verifying service health.
+keywords: [silent install scanner, enterprise deployment, MSI deployment, scanner service health check]
 ---
 
 # Deployment Guide

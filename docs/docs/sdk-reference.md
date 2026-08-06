@@ -1,5 +1,7 @@
 ---
 sidebar_position: 4
+description: Complete reference for the ASWCNScannerBridge JavaScript SDK — methods, scan options, events, and result objects for browser-based document scanning.
+keywords: [JavaScript scanner SDK, ASWCNScannerBridge, web scanning API, scan documents JavaScript]
 ---
 
 # SDK Reference
