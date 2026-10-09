@@ -66,6 +66,16 @@
             flex-wrap: wrap;
             gap: 8px 20px;
         }
+        /* Multi-select needs to align with the top of its label, not the baseline. */
+        #barcodeFormats {
+            vertical-align: top;
+        }
+        .hint {
+            display: block;
+            margin: 4px 0 0 150px;
+            font-size: 12px;
+            color: #666;
+        }
         .checkbox-group label {
             width: auto;
             display: inline-flex;
@@ -135,14 +145,18 @@
 <body>
     <div class="container">
         <h1>ASWCN Scanner Bridge - Demo</h1>
-        
+
         <div id="serviceStatus" class="status offline">
             Service Status: Checking...
         </div>
 
+        <div id="versionInfo" style="margin: 8px 0; font-size: 0.85em; color: #555;">
+            Version: Checking...
+        </div>
+
         <div class="controls">
             <h2>Scanner Controls</h2>
-            
+
             <div class="control-group">
                 <label for="scannerSelect">Scanner:</label>
                 <select id="scannerSelect" disabled onchange="onScannerSelected()">
@@ -193,7 +207,8 @@
                 <label><input type="checkbox" id="autoDeskew" checked> Auto Deskew</label>
                 <label><input type="checkbox" id="autoCrop" checked> Auto Crop</label>
                 <label><input type="checkbox" id="ocrEnabled"> OCR Enabled</label>
-                <label><input type="checkbox" id="barcodeReading" onchange="document.getElementById('barcodeFilter').disabled = !this.checked"> Read Barcodes</label>
+                <label><input type="checkbox" id="barcodeReading" onchange="toggleBarcodeOptions(this.checked)"> Read Barcodes</label>
+                <label><input type="checkbox" id="autoScan" onchange="toggleAutoScan(this.checked)"> Auto Scan</label>
             </div>
 
             <div class="control-group">
@@ -204,6 +219,34 @@
                     <option value="High">High</option>
                     <option value="VeryHigh">Very High</option>
                 </select>
+            </div>
+
+            <div class="control-group">
+                <label for="barcodeFormats">Symbologies:</label>
+                <select id="barcodeFormats" multiple size="7" disabled
+                        title="Restricting symbologies makes decoding dramatically faster and removes false positives.">
+                    <option value="Pdf417">PDF417 (driver's licence)</option>
+                    <option value="QrCode">QR Code</option>
+                    <option value="DataMatrix">Data Matrix</option>
+                    <option value="Aztec">Aztec</option>
+                    <option value="Code128">Code 128</option>
+                    <option value="Code39">Code 39</option>
+                    <option value="Code93">Code 93</option>
+                    <option value="Ean13">EAN-13</option>
+                    <option value="Ean8">EAN-8</option>
+                    <option value="UpcA">UPC-A</option>
+                    <option value="UpcE">UPC-E</option>
+                    <option value="Itf">ITF</option>
+                    <option value="Codabar">Codabar</option>
+                </select>
+                <small class="hint">
+                    Ctrl/Cmd-click to select more than one. Selecting none searches for every
+                    symbology, which is much slower and can produce false positives.
+                </small>
+            </div>
+
+            <div class="control-group checkbox-group">
+                <label><input type="checkbox" id="barcodeStopAfterFirst" disabled> Stop after first barcode found</label>
             </div>
 
             <div class="control-group">
@@ -238,13 +281,31 @@
         // Initialize on page load
         window.addEventListener('load', async () => {
             await checkServiceStatus();
+            await showVersion();
             await refreshScanners();
         });
+
+        async function showVersion() {
+            const versionDiv = document.getElementById('versionInfo');
+            try {
+                const v = await scanner.getVersion();
+                if (v.legacy) {
+                    versionDiv.textContent = 'Version: legacy client (version endpoint not available - update recommended)';
+                    log('Installed client is a legacy version (no version endpoint)', 'error');
+                    return;
+                }
+                const desktop = v.desktopVersion || (v.desktopAppConnected ? 'unknown' : 'not connected');
+                versionDiv.textContent = `${v.productName} - Service ${v.serviceVersion || 'unknown'}, Desktop ${desktop}`;
+                log(`Version - Service: ${v.serviceVersion}, Desktop: ${desktop}`, 'success');
+            } catch (error) {
+                versionDiv.textContent = 'Version: unavailable';
+                log(`Could not retrieve version: ${error.message}`, 'error');
+            }
+        }
 
         async function checkServiceStatus() {
             log('Checking service status...');
             const isAvailable = await scanner.checkServiceStatus();
-            
             const statusDiv = document.getElementById('serviceStatus');
             if (isAvailable) {
                 statusDiv.className = 'status online';
@@ -255,7 +316,7 @@
                 statusDiv.textContent = 'Service Status: Offline ✗ - Please ensure the ASWCN Scanner Bridge Service and Desktop App are running';
                 log('Service is offline', 'error');
             }
-            
+
             return isAvailable;
         }
 
@@ -276,6 +337,7 @@
                         option.selected = true;
                         onScannerSelected();
                     }
+
                 });
 
                 select.disabled = sources.length === 0;
@@ -293,6 +355,27 @@
             }
         }
 
+        // The barcode options are only meaningful while barcode reading is on.
+        function toggleBarcodeOptions(enabled) {
+            ['barcodeFilter', 'barcodeFormats', 'barcodeStopAfterFirst'].forEach(id => {
+                document.getElementById(id).disabled = !enabled;
+            });
+        }
+
+        // Both options are omitted unless the user actually picked something, so leaving
+        // them alone behaves exactly like a client that predates them: an empty symbology
+        // list means "every symbology", which is the server-side default.
+        function barcodeOptions() {
+            const formats = Array.from(
+                document.getElementById('barcodeFormats').selectedOptions).map(o => o.value);
+            const stopAfterFirst = document.getElementById('barcodeStopAfterFirst').checked;
+
+            return {
+                ...(formats.length && { barcodeFormats: formats }),
+                ...(stopAfterFirst && { barcodeStopAfterFirst: true })
+            };
+        }
+
         async function startScan() {
             const scannerName = document.getElementById('scannerSelect').value;
             if (!scannerName) {
@@ -306,7 +389,7 @@
             }
 
             log(`Starting scan with scanner: ${scannerName}`);
-            
+
             const scanBtn = document.getElementById('scanBtn');
             scanBtn.disabled = true;
             scanBtn.textContent = 'Scanning...';
@@ -326,6 +409,7 @@
                     requestTimeoutSeconds: 0,
                     barcodeReadingEnabled: document.getElementById('barcodeReading').checked,
                     barcodeFilterLevel: document.getElementById('barcodeFilter').value,
+                    ...barcodeOptions(),
                     // Only sent when explicitly chosen, so "Default" behaves exactly like a
                     // client that predates this option.
                     ...(document.getElementById('transferMode').value && {
@@ -346,6 +430,11 @@
         }
 
         async function onScannerSelected() {
+            // Disable auto-scan when changing scanners
+            if (autoScanEventSource) {
+                await disableAutoScan();
+            }
+
             const scannerName = document.getElementById('scannerSelect').value;
             if (!scannerName) {
                 // Reset to defaults if no scanner selected
@@ -362,7 +451,7 @@
             }
 
             log(`Selecting ${scannerName}...`);
-            
+
             try {
                 // Auto-open scanner if different from current
                 if (currentScanner !== scannerName) {
@@ -375,12 +464,12 @@
                             log(`Warning: Error closing previous scanner: ${closeErr.message}`, 'info');
                         }
                     }
-                    
+
                     log(`Opening ${scannerName}...`);
                     const response = await scanner.sendCommand('openSource', { sourceName: scannerName });
-                    
+
                     console.log('OpenSource response:', response); // Debug logging
-                    
+
                     if (response.results && response.results.success) {
                         currentScanner = scannerName;
                         log(`✓ ${scannerName} is ready`, 'success');
@@ -412,7 +501,7 @@
                 const resolutionSelect = document.getElementById('resolution');
                 const currentResolution = resolutionSelect.value;
                 resolutionSelect.innerHTML = '';
-                
+
                 if (capabilities.resolutions && capabilities.resolutions.length > 0) {
                     capabilities.resolutions.forEach(res => {
                         const option = document.createElement('option');
@@ -420,7 +509,7 @@
                         option.textContent = `${res} DPI`;
                         resolutionSelect.appendChild(option);
                     });
-                    
+
                     // Try to keep current selection if supported
                     if (capabilities.resolutions.includes(parseInt(currentResolution))) {
                         resolutionSelect.value = currentResolution;
@@ -445,7 +534,7 @@
                 const colorModeSelect = document.getElementById('colorMode');
                 const currentColorMode = colorModeSelect.value;
                 colorModeSelect.innerHTML = '';
-                
+
                 if (capabilities.colorModes && capabilities.colorModes.length > 0) {
                     capabilities.colorModes.forEach(mode => {
                         const option = document.createElement('option');
@@ -453,7 +542,7 @@
                         option.textContent = mode === 'BlackAndWhite' ? 'Black & White' : mode;
                         colorModeSelect.appendChild(option);
                     });
-                    
+
                     if (capabilities.colorModes.includes(currentColorMode)) {
                         colorModeSelect.value = currentColorMode;
                     } else {
@@ -515,8 +604,6 @@
                     }
                 }
 
-                document.getElementById('autoRotate').disabled = !capabilities.supportsAutoRotate;
-
                 const autoDeskewCheckbox = document.getElementById('autoDeskew');
                 autoDeskewCheckbox.disabled = !capabilities.supportsAutoDeskew;
                 autoDeskewCheckbox.checked = capabilities.supportsAutoDeskew;
@@ -546,8 +633,8 @@
             }
         }
 
-        // Object URLs handed out by displayImages, so the next render can release
-        // them instead of leaking a page-sized Blob per card.
+        // Object URLs handed out by displayImages, so a non-append render can
+        // release them instead of leaking a page-sized Blob per card.
         let imageObjectUrls = [];
 
         function base64ToBlob(base64, mimeType) {
@@ -559,11 +646,13 @@
             return new Blob([bytes], { type: mimeType });
         }
 
-        function displayImages(images) {
+        function displayImages(images, append = false) {
             const container = document.getElementById('imagesContainer');
-            imageObjectUrls.forEach(u => URL.revokeObjectURL(u));
-            imageObjectUrls = [];
-            container.innerHTML = '';
+            if (!append) {
+                imageObjectUrls.forEach(u => URL.revokeObjectURL(u));
+                imageObjectUrls = [];
+                container.innerHTML = '';
+            }
 
             images.forEach((image) => {
                 const card = document.createElement('div');
@@ -572,9 +661,9 @@
                 // Decode once into a Blob URL and use it for both the thumbnail and
                 // the open-in-new-tab click. A data: URL would keep a second full
                 // copy of the page as a string, and the click handler would pin
-                // base64Data for the card's lifetime. A large batch is easily
-                // hundreds of MB of Base64, which is enough to take the tab down.
-                // Nothing here holds a reference to image after this iteration.
+                // base64Data for the card's lifetime - a 34-page batch is ~330 MB of
+                // Base64, which is enough to take the tab down in auto-scan (append)
+                // mode. Nothing here holds a reference to image after this iteration.
                 const url = URL.createObjectURL(base64ToBlob(image.base64Data, image.mimeType));
                 imageObjectUrls.push(url);
 
@@ -608,11 +697,129 @@
                     OCR Text: ${image.ocrText}
                     ${barcodeHtml}
                 `;
-                
+
                 card.appendChild(img);
                 card.appendChild(info);
                 container.appendChild(card);
             });
+        }
+
+        // ========== Auto Scan ==========
+        let autoScanEventSource = null;
+
+        async function toggleAutoScan(enabled) {
+            const scanBtn = document.getElementById('scanBtn');
+            const autoScanCheckbox = document.getElementById('autoScan');
+
+            if (enabled) {
+                if (!currentScanner) {
+                    log('Please select a scanner before enabling auto-scan', 'error');
+                    autoScanCheckbox.checked = false;
+                    return;
+                }
+
+                const params = {
+                    parameters: {
+                        resolution: parseInt(document.getElementById('resolution').value),
+                        colorMode: document.getElementById('colorMode').value,
+                        duplexMode: document.getElementById('duplexMode').value,
+                        pageSize: document.getElementById('pageSize').value,
+                        autoRotate: document.getElementById('autoRotate').checked,
+                        autoDeskew: document.getElementById('autoDeskew').checked,
+                        autoCrop: document.getElementById('autoCrop').checked,
+                        ocrEnabled: document.getElementById('ocrEnabled').checked,
+                        imageFormat: 'Png',
+                        barcodeReadingEnabled: document.getElementById('barcodeReading').checked,
+                        barcodeFilterLevel: document.getElementById('barcodeFilter').value,
+                        ...barcodeOptions(),
+                        ...(document.getElementById('transferMode').value && {
+                            transferMode: document.getElementById('transferMode').value
+                        })
+                    }
+                };
+
+                try {
+                    const response = await fetch(`${scanner.baseUrl}/api/twain/autoscan/enable`, {
+                        method: 'POST',
+                        mode: 'cors',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(params)
+                    });
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        log(`Failed to enable auto-scan: ${result.error || result.message}`, 'error');
+                        autoScanCheckbox.checked = false;
+                        return;
+                    }
+
+                    scanBtn.disabled = true;
+                    scanBtn.textContent = 'Auto Scan Active';
+                    log('Auto-scan enabled - insert paper to scan automatically', 'success');
+
+                    // Open SSE connection (withCredentials needed for cross-origin CORS)
+                    autoScanEventSource = new EventSource(
+                        `${scanner.baseUrl}/api/twain/autoscan/events`,
+                        { withCredentials: true }
+                    );
+
+                    autoScanEventSource.addEventListener('image', (event) => {
+                        const image = JSON.parse(event.data);
+                        log(`Auto-scan: received page (${image.width}x${image.height})`, 'success');
+                        displayImages([image], true);
+                    });
+
+                    autoScanEventSource.addEventListener('disabled', () => {
+                        log('Auto-scan was disabled on the desktop side', 'info');
+                        stopAutoScan();
+                    });
+
+                    autoScanEventSource.addEventListener('error', (event) => {
+                        if (autoScanEventSource.readyState === EventSource.CLOSED) {
+                            log('Auto-scan connection closed', 'info');
+                            stopAutoScan();
+                        }
+                    });
+
+                } catch (error) {
+                    log(`Error enabling auto-scan: ${error.message}`, 'error');
+                    autoScanCheckbox.checked = false;
+                }
+            } else {
+                await disableAutoScan();
+            }
+        }
+
+        async function disableAutoScan() {
+            await stopAutoScan();
+            log('Auto-scan disabled', 'info');
+        }
+
+        // Teardown always tells the desktop to disable too, so the desktop can
+        // never stay enabled while the UI shows Auto Scan off. Without this, a
+        // dropped SSE stream (e.g. while a long manual scan holds the pipe)
+        // fires the 'error' handler -> unchecks the box (web = off) while the
+        // desktop stays enabled (desktop = on), and re-checking is then a no-op.
+        async function stopAutoScan() {
+            if (autoScanEventSource) {
+                autoScanEventSource.close();
+                autoScanEventSource = null;
+            }
+            try {
+                await fetch(`${scanner.baseUrl}/api/twain/autoscan/disable`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+            } catch (e) {
+                // Ignore errors on disable
+            }
+            const scanBtn = document.getElementById('scanBtn');
+            const autoScanCheckbox = document.getElementById('autoScan');
+            scanBtn.disabled = !currentScanner;
+            scanBtn.textContent = 'Start Scan';
+            autoScanCheckbox.checked = false;
         }
 
         function log(message, type = 'info') {
@@ -622,7 +829,7 @@
             const timestamp = new Date().toLocaleTimeString();
             entry.textContent = `[${timestamp}] ${message}`;
             logDiv.appendChild(entry);
-            
+
             // Auto-scroll to bottom
             const logContainer = document.getElementById('logContainer');
             logContainer.scrollTop = logContainer.scrollHeight;

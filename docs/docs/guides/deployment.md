@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-description: Deploy AmbirScan Web Connect to end-user machines, including silent installation, starting the Desktop App, and verifying service health.
+description: Deploy AmbirScan Web Connect to Windows and macOS end-user machines, including silent and managed installation and verifying service health.
 keywords: [silent install scanner, enterprise deployment, MSI deployment, scanner service health check]
 ---
 
@@ -10,9 +10,18 @@ How to deploy AmbirScan Web Connect to your end users' machines.
 
 ## Installer Distribution
 
-[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe) and distribute it to your end users. The installer handles all setup automatically.
+There is one installer per platform. Your web application is the same for both — the
+JavaScript SDK and REST API do not change.
 
-### What the Installer Does
+| Platform | Installer |
+|----------|-----------|
+| Windows | [AmbirScanWebConnect_4.1.0.0.exe](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.1.0.0.exe) |
+| macOS | [AmbirScannerBridge-4.1.0.0.pkg](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScannerBridge-4.1.0.0.pkg) |
+
+Distribute the installer to your end users. Each handles all setup automatically. The rest
+of this section covers Windows; for macOS see the [macOS Installer guide](./macos-installer.md).
+
+### What the Windows Installer Does
 
 1. Installs the AmbirScan Web Connect Windows Service
 2. Installs the AmbirScan Web Connect Desktop Application
@@ -36,7 +45,21 @@ AmbirScanWebConnect.msi /quiet /norestart
 
 Use **Windows Add/Remove Programs** (Settings > Apps > Installed apps) to uninstall. The uninstaller removes the service, desktop app, certificate, and firewall rules.
 
-## Starting the Desktop App
+### macOS Deployment
+
+Run the package from the command line or a device-management tool:
+
+```bash
+sudo installer -pkg AmbirScannerBridge-4.1.0.0.pkg -target /
+```
+
+The service runs per user. The installer configures it for whoever is logged in at the
+Mac's screen. Every other user of that Mac — and every user, if nobody was logged in during
+installation — completes a short one-time setup — see
+[Multiple Users and Managed Installs](./macos-installer.md#multiple-users-and-managed-installs).
+On macOS there is no desktop app to start, so the next section applies to Windows only.
+
+## Starting the Desktop App (Windows)
 
 The installer registers the Desktop App to start automatically at sign-in, but it does **not** launch it as part of the install. On a freshly installed machine the Desktop App is not running until the user either signs in again or starts it manually from the Start Menu shortcut:
 
@@ -83,24 +106,30 @@ AmbirScan Web Connect runs entirely on the local machine:
 - Communication between your web app and the service stays on localhost
 - No data leaves the client machine
 
+The diagram shows Windows. On macOS the scanner interface and the HTTPS service are a
+single background process, so there is no desktop app and no pipe between them; the browser
+still talks to `https://localhost:53052`.
+
 ## HTTPS Certificate
 
-The service uses a self-signed certificate (`CN=ASWCN Scanner Bridge`) stored in the Windows Local Machine certificate store.
+The service uses a self-signed certificate (`CN=ASWCN Scanner Bridge`) generated on each
+machine during installation.
 
-- The installer automatically trusts this certificate
+- **Windows:** stored in the Local Machine certificate store and trusted by the installer
+- **macOS:** the private key is stored in the user's login keychain and the trust setting
+  in the System keychain; trusting it requires an administrator password
 - In most cases, browsers will accept it without warnings
 - If users see a certificate warning, they can navigate to `https://localhost:53052/health` and accept it manually
 
 ## System Requirements
 
-| Requirement | Details |
-|-------------|---------|
-| OS | Windows 10 or later (64-bit) |
-| .NET Runtime | .NET 8 (included in installer) |
-| Disk Space | ~50 MB |
-| RAM | Minimal (service uses ~30 MB) |
-| Scanner | Any TWAIN-compatible scanner with drivers installed |
-| Browser | Chrome 90+, Edge 90+ (Firefox 90+ with [additional certificate setup](./browser-security#firefox)) |
+| Requirement | Windows | macOS |
+|-------------|---------|-------|
+| OS | Windows 10 or Windows 11, x64 or Arm64 | macOS 13 Ventura or later, Apple Silicon or Intel |
+| Runtime | .NET 10 runtime, included in the installer | Included in the installer |
+| Disk Space | ~400 MB | ~210 MB |
+| Scanner | Any TWAIN-compatible scanner with drivers installed | Scanner with its macOS ICA driver installed ([Ambir ICA Driver](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirIcaDriver.1.2.52.pkg) for Ambir scanners) |
+| Browser | Chrome, Edge (Firefox with [additional certificate setup](./browser-security#firefox)) | Safari, Chrome, Edge (Firefox with [additional certificate setup](./browser-security#firefox)) |
 
 ## Integrating the SDK
 

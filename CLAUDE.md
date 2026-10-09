@@ -4,16 +4,18 @@ This file provides AI assistants with the context needed to generate framework-s
 
 ## Project Overview
 
-AmbirScan Web Connect enables web applications to control local TWAIN scanners. A Windows service + desktop app pair runs on each client machine, exposing a REST API on `https://localhost:53052`. Your web app includes a JavaScript SDK that talks to this local service via `fetch` with CORS.
+AmbirScan Web Connect enables web applications to control local document scanners on **Windows and macOS**. A local service runs on each client machine, exposing a REST API on `https://localhost:53052`. Your web app includes a JavaScript SDK that talks to this local service via `fetch` with CORS.
 
-**Live demo:** [https://ambirscanwebconnect.azurewebsites.net](https://ambirscanwebconnect.azurewebsites.net) — install the desktop components, then open this URL to scan immediately.
+**One web app, two installers.** The SDK, the REST API and the request and response formats are identical on both platforms — generate one integration, not a Windows and a macOS variant. On Windows the local service is a Windows Service plus a system-tray Desktop App (TWAIN); on macOS it is a single background service.
+
+**Live demo:** [https://ambirscanwebconnect.azurewebsites.net](https://ambirscanwebconnect.azurewebsites.net) — install the client for your platform, then open this URL to scan immediately.
 
 ```
-┌──────────────────┐    HTTPS (fetch, CORS)     ┌────────────────────────┐    TWAIN    ┌─────────┐
-│   Your Web App   │ ──────────────────────────→ │  localhost:53052       │ ──────────→ │ Scanner │
-│   (Browser)      │  mode:'cors'               │  (Windows Service +   │             │         │
-│                  │  credentials:'include'      │   Desktop App)        │             │         │
-└──────────────────┘                             └────────────────────────┘             └─────────┘
+┌──────────────────┐    HTTPS (fetch, CORS)      ┌────────────────────────┐    Internal     ┌─────────┐
+│   Your Web App   │ ──────────────────────────→ │  localhost:53052       │ ──────────────→ │ Scanner │
+│   (Browser)      │  mode:'cors'                │  (Windows or macOS     │                 │         │
+│                  │  credentials:'include'      │   local service)       │                 │         │
+└──────────────────┘                             └────────────────────────┘                 └─────────┘
 ```
 
 **Key facts:**
@@ -21,11 +23,12 @@ AmbirScan Web Connect enables web applications to control local TWAIN scanners. 
 - Your server never talks to the scanner service; it only needs to serve the SDK JS file and set correct CSP headers
 - The service allows **any origin** via CORS (`Access-Control-Allow-Origin` echoes the request origin)
 - **Chrome Private Network Access** preflight headers are handled automatically by the service
-- The service uses a **self-signed HTTPS certificate** installed into the Windows trusted store by the installer
+- The service uses a **self-signed HTTPS certificate** that the installer trusts in the operating system's certificate store (Windows trusted store, or the macOS System keychain)
+- A few scan options are **Windows-only** and are silently ignored on macOS (`pageSize`, `jpegQuality`, `transferMode`, `barcodeFormats`, `barcodeStopAfterFirst`); see [Platform Differences](https://ambirtechnology.github.io/AmbirScanWebConnect/docs/sdk-reference#platform-differences). There is no way to detect the platform from the web app in 4.1.0.0, so don't generate platform-detection code.
 
 **Licensing:**
 - **Free** with Ambir Technology scanners — no license required
-- **Third-party scanners** require a license; unlicensed scans include a watermark
+- **Third-party (non-Ambir) scanners** require a license; without one they are not listed by `getSources()`
 - **OCR and barcode decoding** require additional licensing
 - Contact Ambir for pricing: [https://ambir.com/developers/](https://ambir.com/developers/)
 
@@ -55,7 +58,7 @@ All methods are `async` and return Promises.
 
 #### `checkServiceStatus() → Promise<boolean>`
 
-Returns `true` if the Windows service is running AND the desktop app is connected.
+Returns `true` if the local service is running and ready to scan (on Windows, the service AND the desktop app; on macOS, the single service).
 
 ```javascript
 const ok = await scanner.checkServiceStatus();
@@ -63,7 +66,7 @@ const ok = await scanner.checkServiceStatus();
 
 #### `getSources() → Promise<Array>`
 
-Returns available TWAIN scanners. Each entry has: `{ name, manufacturer, model, isOnline, hasFeeder, hasFlatbed, supportsDuplex }`.
+Returns available scanners. Each entry has: `{ name, manufacturer, model, isOnline, hasFeeder, hasFlatbed, supportsDuplex }`. `hasFeeder`, `hasFlatbed` and `supportsDuplex` are not reliable until the scanner is opened (Windows reports placeholder values, macOS reports `false`) — use `getCapabilities()` after `openSource()` to build UI.
 
 ```javascript
 const sources = await scanner.getSources();
@@ -135,11 +138,17 @@ const images = await scanner.scan({
 | `autoRotate` | `boolean` | `false` | |
 | `autoDeskew` | `boolean` | `true` | |
 | `autoCrop` | `boolean` | `true` | |
-| `outputFormat` | `string` | `'png'` | `'png'`, `'jpeg'`, `'bmp'`, `'tiff'` |
+| `outputFormat` | `string` | `'png'` | `'png'`, `'jpeg'`, `'bmp'`, `'tiff'` (case-insensitive) |
+| `jpegQuality` | `number` | `90` | 1–100, JPEG only. Windows only (ignored on macOS) |
 | `barcodeReadingEnabled` | `boolean` | `false` | |
 | `barcodeFilterLevel` | `string` | `'Normal'` | `'Low'`, `'Normal'`, `'High'`, `'VeryHigh'` |
+| `barcodeFormats` | `string[]` | `[]` (all) | `'Pdf417'`, `'QrCode'`, `'DataMatrix'`, `'Aztec'`, `'Code128'`, `'Code39'`, `'Code93'`, `'Ean13'`, `'Ean8'`, `'UpcA'`, `'UpcE'`, `'Itf'`, `'Codabar'`. Windows only (ignored on macOS) |
+| `barcodeStopAfterFirst` | `boolean` | `false` | Stop at the first barcode on a page. Windows only (ignored on macOS) |
 | `ocrEnabled` | `boolean` | `false` | |
-| `requestTimeoutSeconds` | `number` | `0` | 0 = no timeout |
+| `requestTimeoutSeconds` | `number` | `0` | 0 = no timeout on Windows; 300 s on macOS |
+| `transferMode` | `string` | omitted | `'Auto'`, `'Native'`, `'Buffered'`. Rarely needed; Windows only |
+
+Use `colorMode`, `duplexMode`, `pageSize`, `transferMode` and `barcodeFilterLevel` values with the exact casing shown — an unrecognised value silently falls back to a default. When generating barcode code for driver's licenses, pass `barcodeFormats: ['Pdf417']`.
 
 **ScannedImage fields:**
 
@@ -163,6 +172,14 @@ Returns `{ isOnline, isPaperLoaded, isSourceOpen, ocrEnabled }`.
 #### `checkPaperLoaded() → Promise<boolean>`
 
 #### `checkScannerOnline() → Promise<boolean>`
+
+#### `getVersion() → Promise<object>`
+
+Returns `{ productName, serviceVersion, desktopVersion, desktopAppConnected, legacy }`. `legacy: true` means the installed client predates the version endpoint and should be updated. On macOS `desktopVersion` equals `serviceVersion` and `desktopAppConnected` is always `true`.
+
+#### Auto-scan: `enableAutoScan(params)`, `startAutoScan(handlers)`, `disableAutoScan()`, `stopAutoScan(source)`
+
+Hands-free scanning driven by the scanner's paper sensor. Call `enableAutoScan()` with scan options, then `startAutoScan({ onImage, onDisabled, onError })`, which returns an `EventSource`. Auto-scan takes the output format as `imageFormat` (`'Png'`, `'Jpeg'`, `'Tiff'`, `'Bmp'`), not `outputFormat`. It switches itself off if no page collects images for five minutes, so re-enable it when the page loads.
 
 #### `sendCommand(method, params?) → Promise<object>`
 
@@ -313,7 +330,7 @@ Without this, the browser will silently block `fetch` calls to the scanner servi
 
 ### 3. Self-Signed Certificate
 
-The installer adds the certificate to the Windows trusted store. Most browsers accept it automatically. If users see certificate warnings, they should navigate to `https://localhost:53052/health` once and accept the certificate.
+The installer trusts the certificate in the operating system's certificate store (the Windows trusted store, or the macOS System keychain). Most browsers accept it automatically. If users see certificate warnings, they should navigate to `https://localhost:53052/health` once and accept the certificate.
 
 ### 4. Chrome Private Network Access
 
@@ -528,12 +545,18 @@ declare class ASWCNScannerBridge {
         resolution?: number; colorMode?: string; duplexMode?: string; pageSize?: string;
         autoRotate?: boolean; autoDeskew?: boolean; autoCrop?: boolean; outputFormat?: string;
         barcodeReadingEnabled?: boolean; barcodeFilterLevel?: string; ocrEnabled?: boolean;
-        requestTimeoutSeconds?: number;
+        requestTimeoutSeconds?: number; jpegQuality?: number; barcodeFormats?: string[];
+        barcodeStopAfterFirst?: boolean; transferMode?: string;
     }): Promise<Array<{
         base64Data: string; mimeType: string; pageNumber: number; width: number;
         height: number; resolution: number; format: string; fileSizeBytes: number;
-        ocrText: string; barcodes: Array<{ text: string; barcodeType: string; confidence: number }>;
+        ocrText: string; barcodes: Array<{ text: string; barcodeType: string; confidence: number; isAamva?: boolean; parsedData?: string }>;
     }>>;
+    getVersion(): Promise<{ productName?: string; serviceVersion?: string; desktopVersion?: string; desktopAppConnected?: boolean; legacy: boolean }>;
+    enableAutoScan(params?: object): Promise<{ success: boolean; message: string }>;
+    disableAutoScan(): Promise<{ success: boolean; message: string }>;
+    startAutoScan(handlers: { onImage: (image: any) => void; onDisabled?: (payload: any) => void; onError?: (payload: any) => void }): Promise<EventSource>;
+    stopAutoScan(source: EventSource): void;
     checkPaperLoaded(): Promise<boolean>;
     checkScannerOnline(): Promise<boolean>;
     sendCommand(method: string, params?: any): Promise<any>;
@@ -1200,7 +1223,7 @@ The most common integration failure. If `fetch` calls to the scanner silently fa
 
 ### Certificate Warnings
 
-The self-signed certificate is installed to the Windows trusted store, but some browsers (especially Firefox) maintain their own certificate store. Users should visit `https://localhost:53052/health` and accept the certificate once. In enterprise deployments, push the certificate via Group Policy.
+The self-signed certificate is trusted in the operating system's certificate store (Windows or macOS), but some browsers (especially Firefox) maintain their own certificate store. Users should visit `https://localhost:53052/health` and accept the certificate once. In enterprise deployments, push the certificate via Group Policy.
 
 ### Blazor JS Interop Gotchas
 

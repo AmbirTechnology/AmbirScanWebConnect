@@ -1,26 +1,28 @@
 # AmbirScan Web Connect
 
-AmbirScan Web Connect enables web applications to control local TWAIN scanners through a simple JavaScript SDK. It bridges the gap between browser-based applications and hardware scanners by providing a local Windows service that your web app communicates with via REST API.
+AmbirScan Web Connect enables web applications to control local document scanners through a simple JavaScript SDK. It bridges the gap between browser-based applications and hardware scanners by providing a local service, on Windows or macOS, that your web app communicates with via REST API.
+
+**One web app, two installers.** The JavaScript SDK and REST API are identical on Windows and macOS — you write your web application once and it works against either. Only the installer your users run differs.
 
 ## How It Works
 
 ```
-┌──────────────────┐    HTTPS (REST API)    ┌────────────────────────┐    Internal    ┌─────────────┐
+┌──────────────────┐    HTTPS (REST API)    ┌────────────────────────┐   Internal    ┌─────────────┐
 │   Your Web App   │ ←────────────────────→ │  AmbirScan Web Connect │ ←───────────→ │   Scanner   │
-│   (Browser)      │   localhost:53052      │  (Windows Service +    │    TWAIN      │   Hardware  │
-│                  │                        │   Desktop App)         │               │             │
+│   (Browser)      │   localhost:53052      │  (Windows or macOS     │               │   Hardware  │
+│                  │                        │   local service)       │               │             │
 └──────────────────┘                        └────────────────────────┘               └─────────────┘
 ```
 
 1. Your web application includes the JavaScript SDK (`aswcn-scanner-bridge.js`)
 2. The SDK communicates with the locally installed AmbirScan Web Connect service over HTTPS on `localhost:53052`
-3. The service interfaces with TWAIN scanners and returns scanned images as Base64-encoded data
+3. The service talks to the scanner — through TWAIN on Windows, Apple's Image Capture framework on macOS — and returns scanned images as Base64-encoded data
 
 ## Try It Now
 
 Want to test scanning without building your own web app? A hosted demo is available:
 
-1. **[Download and install AmbirScan Web Connect](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)**
+1. **Download and install AmbirScan Web Connect** — [Windows](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.1.0.0.exe) or [macOS](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScannerBridge-4.1.0.0.pkg)
 2. **Browse to [https://ambirscanwebconnect.azurewebsites.net](https://ambirscanwebconnect.azurewebsites.net)**
 3. **Select your scanner and scan** — the web app communicates with the scanner service running on your machine
 
@@ -30,14 +32,10 @@ This is the fastest way to verify your installation is working before integratin
 
 ### 1. Install AmbirScan Web Connect
 
-[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe) and run it on each client machine that has a scanner connected.
+Download the installer for your platform and run it on each computer that has a scanner connected:
 
-The installer will set up:
-- **AmbirScan Web Connect Service** — HTTPS REST API on `localhost:53052`
-- **AmbirScan Web Connect Desktop App** — TWAIN scanner interface (runs in the system tray)
-- **Self-signed HTTPS certificate** — Automatically installed and trusted
-
-> **Note:** The installer requires Administrator privileges for certificate and service installation.
+- **Windows:** [AmbirScanWebConnect_4.1.0.0.exe](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.1.0.0.exe) — sets up the AmbirScan Web Connect Service (HTTPS REST API on `localhost:53052`), the Desktop App (TWAIN scanner interface, runs in the system tray) and a trusted self-signed HTTPS certificate. Requires Administrator privileges.
+- **macOS:** [AmbirScannerBridge-4.1.0.0.pkg](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScannerBridge-4.1.0.0.pkg) — for Ambir scanners, install the [Ambir ICA Driver](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirIcaDriver.1.2.52.pkg) first. sets up a background service on `localhost:53052` that runs at login, and a trusted self-signed HTTPS certificate. Requires an administrator password to install and to trust the certificate.
 
 ### 2. Add the JavaScript SDK to Your Web App
 
@@ -98,14 +96,20 @@ await scanner.closeSource();
 
 ### System Requirements
 
-- **OS:** Windows 10 or later (64-bit)
-- **Browser:** Chrome 90+, Edge 90+, or any modern Chromium-based browser (Firefox 90+ is supported with [additional certificate setup](https://github.com/AmbirTechnology/AmbirScanWebConnect))
-- **Scanner:** Any TWAIN-compatible scanner
-- **.NET Runtime:** .NET 8 Runtime (included in the installer)
+| | Windows | macOS |
+|---|---|---|
+| **OS** | Windows 10 or Windows 11, x64 or Arm64 | macOS 13 Ventura or later, Apple Silicon or Intel |
+| **Browser** | Chrome or Edge | Safari, Chrome or Edge |
+| **Scanner** | Any TWAIN-compatible scanner | Scanner with its macOS ICA driver installed ([Ambir ICA Driver](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirIcaDriver.1.2.52.pkg) for Ambir scanners) |
+| **Runtime** | .NET 10 runtime, included in the installer | Included in the installer |
 
-### Installation Steps
+Firefox is supported on both with [additional certificate setup](https://ambirtechnology.github.io/AmbirScanWebConnect/docs/guides/browser-security#firefox).
 
-1. **[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)**
+### Installation Steps (Windows)
+
+For macOS, see the [macOS Installer guide](https://ambirtechnology.github.io/AmbirScanWebConnect/docs/guides/macos-installer).
+
+1. **[Download the installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.1.0.0.exe)**
 2. **Run the installer** as Administrator
 3. **Complete the setup wizard** — the installer will:
    - Install the Windows Service and Desktop Application
@@ -130,7 +134,7 @@ Open a browser and navigate to:
 https://localhost:53052/health
 ```
 
-You should see a JSON response indicating the service is healthy. If you see a certificate warning, accept it — the self-signed certificate is safe for localhost use.
+You should see `Healthy`. If you see a certificate warning, accept it — the self-signed certificate is safe for localhost use.
 
 You can also use the included diagnostic page (`sample-app/scanner-diagnostic.html`) to test the full scanning pipeline.
 
@@ -363,9 +367,9 @@ If users encounter certificate issues, they can navigate to `https://localhost:5
 
 | Issue | Solution |
 |-------|----------|
-| Service not responding | Check that both the Windows Service and Desktop App are running (system tray icon) |
+| Service not responding | Windows: check that both the Windows Service and Desktop App are running (system tray icon). macOS: see [macOS Diagnostics](https://ambirtechnology.github.io/AmbirScanWebConnect/docs/guides/macos-diagnostics) |
 | Certificate warning | Navigate to `https://localhost:53052/health` and accept the certificate |
-| No scanners found | Ensure a TWAIN-compatible scanner is connected and its drivers are installed |
+| No scanners found | Ensure the scanner is connected and its driver is installed (TWAIN driver on Windows, macOS ICA driver on a Mac). Scanners from other manufacturers also need a third-party scanner license |
 | Scan timeout | Increase `requestTimeoutSeconds` parameter or check scanner hardware |
 | CORS errors | Ensure you're using `mode: 'cors'` in fetch requests (the SDK handles this automatically) |
 
@@ -407,7 +411,7 @@ AmbirScan Web Connect is **free to use** with Ambir Technology scanners. No lice
 
 ### Third-Party Scanner Support
 
-Third-party TWAIN scanners may be used with AmbirScan Web Connect, but require a licensing fee. Without a license, scans performed with third-party scanners will include a watermark. [Contact Ambir for pricing](https://ambir.com/developers/).
+Scanners from other manufacturers may be used with AmbirScan Web Connect, but require a third-party scanner license. Without one, they are not listed by `getSources()`. [Contact Ambir for pricing](https://ambir.com/developers/).
 
 ### OCR and Barcode Decoding
 
@@ -416,18 +420,24 @@ OCR text extraction and barcode decoding are premium features that require addit
 ### Code License
 
 - **SDK and Sample Code** (`sdk/` and `sample-app/`): [MIT License](LICENSE) — free to use, modify, and integrate into your applications
-- **Windows Installer and Binaries**: [SDK License and Subscription Agreement](EULA.md) — see EULA.md for terms. [Download installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.0.0.14.exe)
+- **Windows and macOS Installers and Binaries**: [SDK License and Subscription Agreement](EULA.md) — see EULA.md for terms. Download the [Windows installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScanWebConnect_4.1.0.0.exe) or the [macOS installer](https://ambirfileshare.s3.us-west-2.amazonaws.com/AmbirScannerBridge-4.1.0.0.pkg)
 - **Third-Party Components:** See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for open source license notices
 
 ### Open Source Components
 
-The proprietary Runtime incorporates the following third-party open source software. Full license texts are provided in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+The proprietary Runtime incorporates the following third-party open source software. The Windows and macOS clients ship different components; full license texts and per-platform details are provided in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-| Component | Purpose | License |
-|---|---|---|
-| [DTWAIN (Dynarithmic TWAIN Library)](https://github.com/dynarithmic/twain_library) | TWAIN scanner communication and image acquisition | Apache License 2.0 |
-| [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) | Optical character recognition on scanned images | Apache License 2.0 |
-| [ZXing.Net](https://github.com/micjahn/ZXing.Net) | Barcode detection and decoding in scanned images | Apache License 2.0 |
+| Component | Purpose | License | Windows | macOS |
+|---|---|---|:---:|:---:|
+| [DTWAIN (Dynarithmic TWAIN Library)](https://github.com/dynarithmic/twain_library) | TWAIN scanner communication and image acquisition | Apache License 2.0 | ✓ | |
+| [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and [TesseractOCR for .NET](https://github.com/Sicos1977/TesseractOCR) | Optical character recognition on scanned images | Apache License 2.0 | ✓ | |
+| [Leptonica](https://github.com/DanBloomberg/leptonica) | Image processing used by Tesseract | BSD 2-Clause | ✓ | |
+| [ZXing.Net](https://github.com/micjahn/ZXing.Net) | Barcode detection and decoding in scanned images | Apache License 2.0 | ✓ | |
+| [OpenCV](https://github.com/opencv/opencv) and [OpenCvSharp](https://github.com/shimat/opencvsharp) | Image preprocessing for barcode decoding | Apache License 2.0 | ✓ | |
+| [FFmpeg](https://ffmpeg.org) | Included with OpenCV's Windows runtime (video plugin, not used) | LGPL 2.1 or later | ✓ | |
+| [Serilog](https://serilog.net) | Logging | Apache License 2.0 | ✓ | ✓ |
+| [.NET runtime](https://github.com/dotnet/runtime) | Application runtime | MIT | ✓ | ✓ |
+| [IdParser](https://github.com/c0shea/IdParser) | AAMVA driver's license and ID card parsing | MIT | ✓ | ✓ |
 
 ## Support
 

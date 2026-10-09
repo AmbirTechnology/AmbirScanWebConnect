@@ -49,7 +49,7 @@ Chrome's newer **Local Network Access** feature (Chrome 138+) may introduce addi
 
 ## HTTPS Certificate
 
-The service uses a self-signed certificate. The installer adds it to the Windows trusted certificate store, so browsers typically trust it automatically.
+The service uses a self-signed certificate generated on each machine during installation. The installer trusts it in the operating system's certificate store — the Windows trusted certificate store, or the macOS System keychain — so browsers typically trust it automatically.
 
 ### If Users See Certificate Warnings
 
@@ -59,20 +59,25 @@ The service uses a self-signed certificate. The installer adds it to the Windows
 
 ### Certificate Details
 
-| Property | Value |
-|----------|-------|
-| Subject | `CN=ASWCN Scanner Bridge` |
-| Store | Local Machine > Personal |
-| Trust | Added to Trusted Root Certification Authorities |
-| Validity | 5 years from installation |
+| Property | Windows | macOS |
+|----------|---------|-------|
+| Subject | `CN=ASWCN Scanner Bridge` | `CN=ASWCN Scanner Bridge` |
+| Store | Local Machine > Personal | The user's login keychain (private key) |
+| Trust | Added to Trusted Root Certification Authorities | Trusted for SSL in the System keychain |
+| Validity | 5 years from installation | 5 years from installation |
+
+## Safari
+
+On macOS, Safari trusts the certificate through the system keychain, so it works out of the
+box. Chrome and Edge on macOS do the same.
 
 ## Edge
 
-Microsoft Edge follows the same Private Network Access policies as Chrome (both are Chromium-based) and trusts the certificate through the Windows certificate store, so it works out of the box just like Chrome.
+Microsoft Edge follows the same Private Network Access policies as Chrome (both are Chromium-based) and trusts the certificate through the operating system's certificate store, so it works out of the box just like Chrome.
 
 ## Firefox
 
-Firefox is supported, but requires one extra step. Unlike Chrome and Edge, **Firefox does not use the Windows certificate store** — it maintains its own (NSS) trust database. The self-signed certificate the installer adds to Windows is therefore invisible to Firefox, and the SDK's background requests to `https://localhost:53052` will fail with a certificate error until Firefox is told to trust it.
+Firefox is supported, but requires one extra step. Unlike Chrome, Edge and Safari, **Firefox does not use the operating system's certificate store** by default — on Windows or on macOS — it maintains its own (NSS) trust database. The self-signed certificate the installer trusts in the operating system is therefore invisible to Firefox, and the SDK's background requests to `https://localhost:53052` will fail with a certificate error until Firefox is told to trust it.
 
 Firefox does not enforce Private Network Access restrictions and honors the CORS headers the service provides, so the certificate is the only obstacle. Choose one of the following:
 
@@ -88,5 +93,5 @@ Set `security.enterprise_roots.enabled` to `true`. This makes Firefox additional
 Have each user navigate to `https://localhost:53052/health`, click **Advanced**, then **Accept the Risk and Continue**. The exception is stored per Firefox profile and persists for future requests.
 
 :::note
-Chrome and Edge need none of these steps — they trust the certificate automatically through the Windows store. The extra configuration applies to Firefox only.
+Chrome, Edge and Safari need none of these steps — they trust the certificate automatically through the operating system's certificate store. The extra configuration applies to Firefox only.
 :::

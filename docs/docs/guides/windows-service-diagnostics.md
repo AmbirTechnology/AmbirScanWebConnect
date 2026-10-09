@@ -370,10 +370,10 @@ All responses include:
    netstat -ano | findstr :53052
    ```
    If another process is using the port, stop it or change the port in `appsettings.json`.
-3. **Missing .NET Runtime** — The service requires .NET 8 Runtime. Check with:
-   ```batch
-   dotnet --list-runtimes
-   ```
+3. **Missing runtime files** — The service ships with its own .NET 10 runtime in
+   `C:\Program Files (x86)\ASWCNextgen\ASWCNService\`, so no separate .NET installation is
+   needed. If it reports missing runtime files (for example `coreclr.dll`), repair or
+   reinstall AmbirScan Web Connect.
 4. **Check Windows Event Viewer** — Open `eventvwr.msc`, navigate to **Windows Logs > Application**, and filter by source "ASWCN"
 
 ### Desktop App Connected but Scans Fail
