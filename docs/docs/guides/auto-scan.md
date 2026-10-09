@@ -33,7 +33,8 @@ const scanner = new ASWCNScannerBridge();
 const sources = await scanner.getSources();
 await scanner.openSource(sources[0].name);
 
-// 2. Enable auto-scan (accepts the same parameters as scan())
+// 2. Enable auto-scan (accepts the same parameters as scan(); see the
+//    note on imageFormat below)
 await scanner.enableAutoScan({
     resolution: 300,
     colorMode: 'Color',
@@ -79,8 +80,21 @@ immediately.
 - **Barcode and OCR** work the same as in a normal scan — pass
   `barcodeReadingEnabled: true` or `ocrEnabled: true` to `enableAutoScan()` (both are
   [premium features](https://ambir.com/developers/)).
-- **Connection drops.** If the desktop app disconnects, the stream emits an `error`
-  event and ends. Re-check `checkServiceStatus()` before re-enabling.
+- **Connection drops.** If the connection to the scanner service drops (on Windows, for
+  example, when the Desktop App closes), the stream emits an `error` event and ends.
+  Re-check `checkServiceStatus()` before re-enabling.
+- **macOS: empty scans.** On macOS, auto-scan also switches itself off after three scans in
+  a row that fail or return no pages. Your `onDisabled` handler is called; re-enable when ready.
+- **Auto-scan switches itself off when nobody is collecting.** It stays on only while a
+  page holds the event stream open. If no page collects images for five minutes — the tab
+  was closed, the page reloaded, or the computer slept — auto-scan disables itself and
+  discards any pages that were scanned but never delivered. Re-enable it when your page
+  loads rather than assuming it is still on.
+- **Disabling discards undelivered pages.** `disableAutoScan()` throws away pages that
+  were scanned but not yet delivered, so they never appear in a later session.
+- **Output format.** Auto-scan takes the output format as `imageFormat` (`'Png'`,
+  `'Jpeg'`, `'Tiff'` or `'Bmp'`); `outputFormat` is not recognised here, so auto-scan
+  returns PNG unless `imageFormat` is set.
 
 ## REST equivalent
 

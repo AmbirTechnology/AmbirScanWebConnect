@@ -138,15 +138,18 @@ These rules allow the Desktop App (`AmbirWebScan.exe`) to communicate freely on 
 
 ### Registry Entries
 
-The installer creates standard MSI uninstall registry entries:
+The installer creates standard MSI uninstall registry entries. On 64-bit Windows they are
+under the 32-bit (`WOW6432Node`) view:
 
 ```
-HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\{58CCE509-0ECB-4E65-B52F-3DF5E070CC44}
+HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{D5747ED3-ECD7-4861-8BBF-5379880EF1CA}
   DisplayName: AmbirScan Web Connect
-  DisplayVersion: 4.0.0.14
+  DisplayVersion: 4.1.0.0
   Publisher: Ambir Technology, Inc.
-  InstallLocation: C:\Program Files (x86)\ASWCNextgen\
 ```
+
+The product code in braces changes with every release. Scripts that detect the installed
+version should search for `DisplayName` = `AmbirScan Web Connect` rather than a fixed key.
 
 ---
 
@@ -220,7 +223,7 @@ rmdir /s /q "%LOCALAPPDATA%\ASWCN"
 
 Use this checklist when deploying to a new client machine:
 
-- [ ] **System requirements met** — Windows 10 or later, .NET 8 Runtime, administrator access
+- [ ] **System requirements met** — Windows 10 or Windows 11 (x64 or Arm64), administrator access
 - [ ] **Scanner connected** — TWAIN-compatible scanner plugged in and powered on
 - [ ] **TWAIN driver installed** — Scanner manufacturer's TWAIN driver is installed
 - [ ] **Run installer** — `AmbirScanWebConnect.exe` as Administrator
@@ -282,10 +285,9 @@ Use this checklist when deploying to a new client machine:
    ```batch
    netstat -ano | findstr :53052
    ```
-3. **.NET Runtime missing** — Verify .NET 8 is installed:
-   ```batch
-   dotnet --list-runtimes
-   ```
+3. **Runtime files missing** — The installer includes its own .NET 10 runtime, so no
+   separate .NET installation is needed. If the service reports missing runtime files (for
+   example `coreclr.dll`), repair or reinstall AmbirScan Web Connect.
 4. Check the Windows Event Viewer (`eventvwr.msc`) under **Windows Logs > Application** for error details
 
 ### TWAIN Scanner Not Detected
@@ -374,10 +376,10 @@ Configuration files may be overwritten during upgrades. Back up any custom setti
 
 | Requirement | Minimum |
 |-------------|---------|
-| **Operating System** | Windows 10 or later (x86 or x64) |
-| **Runtime** | .NET 8 Runtime |
+| **Operating System** | Windows 10 or Windows 11, x64 or Arm64 |
+| **Runtime** | .NET 10 runtime (included in the installer) |
 | **Privileges** | Administrator (for installation) |
-| **Disk Space** | 100 MB |
+| **Disk Space** | 400 MB |
 | **RAM** | 512 MB |
 | **Scanner** | TWAIN-compatible scanner with manufacturer driver |
 | **Browser** | Chrome or Edge (Firefox supported with [additional certificate setup](./browser-security#firefox)) |

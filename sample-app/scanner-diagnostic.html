@@ -26,6 +26,12 @@
     <h1>Scanner Bridge Diagnostic Tool</h1>
     
     <div class="section">
+        <h2>Installed Version</h2>
+        <button onclick="checkVersion()">Get Version</button>
+        <div id="versionResult"></div>
+    </div>
+
+    <div class="section">
         <h2>Step 1: Get Available Scanners</h2>
         <button onclick="getScanners()">Get Scanner List</button>
         <div id="scannerList"></div>
@@ -85,6 +91,36 @@
             }
         }
         
+        async function checkVersion() {
+            log('Checking installed version...');
+            const resultDiv = document.getElementById('versionResult');
+            try {
+                const response = await fetch(`${serviceUrl}/api/twain/version`, {
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+
+                if (response.status === 404) {
+                    resultDiv.innerHTML = '<h3>Version:</h3><pre>Legacy client - version endpoint not available (update recommended)</pre>';
+                    log('Legacy client installed (no version endpoint)', 'error');
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('version response:', data);
+                resultDiv.innerHTML = '<h3>Version:</h3><pre>' +
+                    JSON.stringify(data, null, 2) + '</pre>';
+                const desktop = data.desktopVersion || (data.desktopAppConnected ? 'unknown' : 'not connected');
+                log(`Service: ${data.serviceVersion || 'unknown'}, Desktop: ${desktop}`, 'success');
+            } catch (error) {
+                log(`Error getting version: ${error.message}`, 'error');
+            }
+        }
+
         async function getScanners() {
             log('Fetching scanner list...');
             try {
@@ -171,6 +207,7 @@
         // Auto-load scanners on page load
         window.onload = () => {
             log('Diagnostic tool ready', 'info');
+            checkVersion();
             getScanners();
         };
     </script>

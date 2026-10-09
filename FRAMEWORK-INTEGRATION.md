@@ -7,7 +7,7 @@ How to integrate AmbirScan Web Connect into popular web frameworks. The scanner 
 > 2. Allow `connect-src https://localhost:53052` in CSP headers
 > 3. Allow `img-src data:` in CSP headers (for displaying scanned images)
 
-For SDK method reference, see the [README](README.md#sdk-reference). For REST API details, see [docs/rest-api.md](docs/rest-api.md).
+For SDK method reference, see the [README](README.md#sdk-reference). For REST API details, see [docs/docs/rest-api.md](docs/docs/rest-api.md). The SDK and REST API are identical on Windows and macOS, so every integration below works with both clients.
 
 ## Table of Contents
 
@@ -277,6 +277,10 @@ declare class ASWCNScannerBridge {
         autoCrop?: boolean; outputFormat?: string;
         barcodeReadingEnabled?: boolean;
         barcodeFilterLevel?: string;
+        barcodeFormats?: string[];
+        barcodeStopAfterFirst?: boolean;
+        jpegQuality?: number;
+        transferMode?: string;
         ocrEnabled?: boolean;
         requestTimeoutSeconds?: number;
     }): Promise<Array<{
@@ -284,8 +288,23 @@ declare class ASWCNScannerBridge {
         pageNumber: number; width: number; height: number;
         resolution: number; format: string; fileSizeBytes: number;
         ocrText: string;
-        barcodes: Array<{ text: string; barcodeType: string; confidence: number }>;
+        barcodes: Array<{
+            text: string; barcodeType: string; confidence: number;
+            isAamva?: boolean; parsedData?: string;
+        }>;
     }>>;
+    getVersion(): Promise<{
+        productName?: string; serviceVersion?: string; desktopVersion?: string;
+        desktopAppConnected?: boolean; legacy: boolean;
+    }>;
+    enableAutoScan(params?: object): Promise<{ success: boolean; message: string }>;
+    disableAutoScan(): Promise<{ success: boolean; message: string }>;
+    startAutoScan(handlers: {
+        onImage: (image: any) => void;
+        onDisabled?: (payload: any) => void;
+        onError?: (payload: any) => void;
+    }): Promise<EventSource>;
+    stopAutoScan(source: EventSource): void;
     checkPaperLoaded(): Promise<boolean>;
     checkScannerOnline(): Promise<boolean>;
     sendCommand(method: string, params?: any): Promise<any>;
@@ -987,7 +1006,7 @@ The most common integration failure. If `fetch` calls to the scanner silently fa
 
 ### Certificate Warnings
 
-The self-signed certificate is installed to the Windows trusted store, which Chrome and Edge honor automatically. Firefox maintains its own (NSS) certificate store and does not read the Windows store by default, so it needs one extra step: either set `security.enterprise_roots.enabled` to `true` (so Firefox also trusts the OS store — recommended, and pushable via enterprise policy for managed fleets), or have users visit `https://localhost:53052/health` and accept the certificate manually.
+The self-signed certificate is trusted in the operating system's certificate store (Windows, or the macOS System keychain), which Chrome, Edge and Safari honor automatically. Firefox maintains its own (NSS) certificate store and does not read the operating system store by default, so it needs one extra step: either set `security.enterprise_roots.enabled` to `true` (so Firefox also trusts the OS store — recommended, and pushable via enterprise policy for managed fleets), or have users visit `https://localhost:53052/health` and accept the certificate manually.
 
 ### Large Payloads
 

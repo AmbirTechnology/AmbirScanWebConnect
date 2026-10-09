@@ -6,7 +6,8 @@ keywords: [scanner not found, HTTP 503 scanner service, TWAIN troubleshooting, l
 
 # Troubleshooting
 
-Common issues and their solutions.
+Common issues and their solutions. The steps below are for Windows; on a Mac, see
+[macOS Diagnostics](./guides/macos-diagnostics.md).
 
 ## Service Not Responding
 
@@ -47,6 +48,7 @@ ASWCNCertManager.exe install
 2. Install the scanner's TWAIN driver (available from the scanner manufacturer's website)
 3. Verify the scanner works in other TWAIN applications
 4. Restart the Desktop App after connecting a new scanner
+5. Scanners from manufacturers other than Ambir are listed only when a [third-party scanner license](./introduction.md#third-party-scanner-support) is active
 
 ---
 

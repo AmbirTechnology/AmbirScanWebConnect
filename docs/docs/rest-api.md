@@ -6,7 +6,7 @@ keywords: [scanner REST API, TWAIN Direct, localhost scanning API, document scan
 
 # REST API Reference
 
-If you prefer to use the REST API directly instead of the JavaScript SDK, the service exposes the following endpoints on `https://localhost:53052`.
+If you prefer to use the REST API directly instead of the JavaScript SDK, the service exposes the following endpoints on `https://localhost:53052`. The API is the same on Windows and macOS; a few scan options are ignored on macOS — see [Platform Differences](./sdk-reference.md#platform-differences).
 
 ## Authentication
 
@@ -26,15 +26,15 @@ The service accepts requests from any origin and supports Chrome's Private Netwo
 GET /health
 ```
 
-Returns service health status.
+Returns the service health status as plain text.
 
 **Response:**
 
-```json
-{
-  "status": "Healthy"
-}
 ```
+Healthy
+```
+
+On Windows the response is `Degraded` while the Desktop App is not running.
 
 ---
 
@@ -80,8 +80,8 @@ available; the desktop version is included only when the desktop app is connecte
 {
   "success": true,
   "productName": "AmbirScan Web Connect",
-  "serviceVersion": "4.0.0.14",
-  "desktopVersion": "4.0.0.14",
+  "serviceVersion": "4.1.0.0",
+  "desktopVersion": "4.1.0.0",
   "desktopAppConnected": true,
   "timestamp": "2026-02-25T12:00:00Z"
 }
@@ -120,7 +120,7 @@ Returns a list of all available TWAIN scanners.
 }
 ```
 
-**Response (503):**
+**Response (503, Windows only — the Desktop App is not running):**
 
 ```json
 {
@@ -162,6 +162,10 @@ GET /api/twain/scanners/TravelScan%20Pro/capabilities
 }
 ```
 
+On macOS this endpoint also returns `supportedOcrLanguages`, the OCR languages available on
+that Mac. It is informational: the OCR language cannot be chosen in this release. On macOS, `supportedPageSizes` lists the sizes that fit the scanner, but
+`pageSize` is not applied when scanning.
+
 ---
 
 ### Scan
@@ -186,9 +190,12 @@ Perform a scan. Handles opening the scanner, scanning, and returning results.
     "autoRotate": false,
     "autoDeskew": true,
     "autoCrop": true,
-    "outputFormat": "png",
+    "imageFormat": "Png",
+    "jpegQuality": 90,
     "barcodeReadingEnabled": false,
     "barcodeFilterLevel": "Normal",
+    "barcodeFormats": [],
+    "barcodeStopAfterFirst": false,
     "ocrEnabled": false,
     "requestTimeoutSeconds": 0,
     "transferMode": "Auto"
@@ -196,9 +203,18 @@ Perform a scan. Handles opening the scanner, scanning, and returning results.
 }
 ```
 
-`transferMode` is optional (`"Auto"`, `"Native"` or `"Buffered"`) and rarely needed. Omit
-it to use the mode configured in the desktop app, which defaults to native transfer; see
-[Transfer Mode](./sdk-reference.md#transfer-mode).
+This endpoint names the output format `imageFormat` (`"Png"`, `"Jpeg"`, `"Tiff"` or
+`"Bmp"`), unlike the [TWAIN Direct endpoint](#twain-direct-protocol-endpoint) used by the
+JavaScript SDK, which calls it `outputFormat`. See [Parameter names by
+endpoint](#parameter-names-by-endpoint).
+
+- `jpegQuality` (1–100, default `90`) applies only to JPEG output.
+- `barcodeFormats` and `barcodeStopAfterFirst` narrow barcode decoding; see
+  [Choosing Symbologies](./guides/barcode-reading.md#choosing-symbologies). An empty
+  `barcodeFormats` array searches every supported symbology.
+- `transferMode` is optional (`"Auto"`, `"Native"` or `"Buffered"`) and rarely needed. Omit
+  it to use the mode configured in the desktop app, which defaults to native transfer; see
+  [Transfer Mode](./sdk-reference.md#transfer-mode).
 
 **Response (200):**
 
@@ -256,7 +272,7 @@ it to use the mode configured in the desktop app, which defaults to native trans
 | Status | Description |
 |--------|-------------|
 | 400 | Scanner name is required |
-| 503 | Desktop application not connected |
+| 503 | Desktop application not connected (Windows only) |
 | 504 | Scan timed out |
 | 500 | Internal server error |
 
@@ -311,7 +327,7 @@ Enable auto-scan mode. The scanner watches its paper sensor and automatically ca
     "autoRotate": false,
     "autoDeskew": true,
     "autoCrop": true,
-    "outputFormat": "png",
+    "imageFormat": "Png",
     "barcodeReadingEnabled": false,
     "barcodeFilterLevel": "Normal",
     "ocrEnabled": false,
@@ -320,6 +336,9 @@ Enable auto-scan mode. The scanner watches its paper sensor and automatically ca
   }
 }
 ```
+
+Takes the same parameters as [Scan](#scan), including `imageFormat`, `jpegQuality`,
+`barcodeFormats` and `barcodeStopAfterFirst`.
 
 **Response (200):**
 
@@ -330,7 +349,11 @@ Enable auto-scan mode. The scanner watches its paper sensor and automatically ca
 }
 ```
 
-**Response (503):** Desktop application not connected.
+Auto-scan stays on only while a client holds the [event stream](#auto-scan-events) open.
+If nothing reads the stream for five minutes, auto-scan disables itself and discards pages
+that were scanned but not delivered.
+
+**Response (503):** Desktop application not connected (Windows only).
 
 ---
 
@@ -340,7 +363,7 @@ Enable auto-scan mode. The scanner watches its paper sensor and automatically ca
 POST /api/twain/autoscan/disable
 ```
 
-Disable auto-scan mode.
+Disable auto-scan mode. Pages that were scanned but not yet delivered are discarded.
 
 **Response (200):**
 
@@ -428,6 +451,37 @@ The main TWAIN Direct protocol endpoint used by the JavaScript SDK.
 }
 ```
 
+**Scan request** — the parameters are the [SDK scan parameters](./sdk-reference.md#scan-parameters):
+
+```json
+{
+  "kind": "twainlocalscanner",
+  "method": "scan",
+  "params": {
+    "resolution": 300,
+    "colorMode": "Color",
+    "outputFormat": "jpeg",
+    "jpegQuality": 85,
+    "barcodeReadingEnabled": true,
+    "barcodeFormats": ["Pdf417"],
+    "barcodeStopAfterFirst": true
+  }
+}
+```
+
+### Parameter names by endpoint
+
+The TWAIN Direct endpoint and the simplified endpoints accept the same options, but name
+the output format differently:
+
+| Option | `POST /api/twain` (SDK `scan()`) | `POST /api/twain/scan` and `/api/twain/autoscan/enable` |
+|--------|----------------------------------|----------------------------------------------------------|
+| Output format | `outputFormat`: `"png"`, `"jpeg"`/`"jpg"`, `"tiff"`/`"tif"`, `"bmp"` (case-insensitive) | `imageFormat`: `"Png"`, `"Jpeg"`, `"Tiff"`, `"Bmp"` |
+| Everything else | Same names as the [SDK scan parameters](./sdk-reference.md#scan-parameters) | Same names |
+
+A field an endpoint doesn't recognise is ignored rather than rejected, so sending
+`outputFormat` to `/api/twain/scan` produces PNG.
+
 ---
 
 ## Enum Values
@@ -456,16 +510,29 @@ The main TWAIN Direct protocol endpoint used by the JavaScript SDK.
 | `Legal` | 8.5" x 14" |
 | `A4` | 210mm x 297mm |
 | `A5` | 148mm x 210mm |
+| `A6` | 105mm x 148mm |
+| `B5` | JIS B5, 182mm x 257mm |
 | `Auto` | Auto-detect page size |
+
+Which sizes a scanner can actually produce is reported in `supportedPageSizes` from
+[Get Scanner Capabilities](#get-scanner-capabilities). It may also include `A3` or
+`Executive`, which the SDK's `scan()` does not accept.
 
 ### Output Formats
 
-| Value | MIME Type |
-|-------|----------|
-| `png` | `image/png` |
-| `jpeg` | `image/jpeg` |
-| `bmp` | `image/bmp` |
-| `tiff` | `image/tiff` |
+| `outputFormat` (`/api/twain`) | `imageFormat` (simplified endpoints) | MIME Type |
+|-------------------------------|--------------------------------------|-----------|
+| `png` | `Png` | `image/png` |
+| `jpeg` or `jpg` | `Jpeg` | `image/jpeg` |
+| `bmp` | `Bmp` | `image/bmp` |
+| `tiff` or `tif` | `Tiff` | `image/tiff` |
+
+### Barcode Formats
+
+`Pdf417`, `QrCode`, `DataMatrix`, `Aztec`, `Code128`, `Code39`, `Code93`, `Ean13`, `Ean8`,
+`UpcA`, `UpcE`, `Itf`, `Codabar`. Case-insensitive. See
+[Supported Barcode Formats](./guides/barcode-reading.md#supported-barcode-formats) for the
+`barcodeType` name each one reports in results.
 
 ### Barcode Filter Levels
 

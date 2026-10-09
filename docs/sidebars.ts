@@ -12,10 +12,24 @@ const sidebars: SidebarsConfig = {
         'guides/browser-security',
         'guides/barcode-reading',
         'guides/auto-scan',
-        'guides/desktop-app-diagnostics',
-        'guides/windows-service-diagnostics',
-        'guides/certificate-manager',
-        'guides/msi-installer',
+        {
+          type: 'category',
+          label: 'Windows',
+          items: [
+            'guides/msi-installer',
+            'guides/certificate-manager',
+            'guides/desktop-app-diagnostics',
+            'guides/windows-service-diagnostics',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'macOS',
+          items: [
+            'guides/macos-installer',
+            'guides/macos-diagnostics',
+          ],
+        },
       ],
     },
     'sdk-reference',

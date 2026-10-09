@@ -32,7 +32,7 @@ const scanner = new ASWCNScannerBridge(baseUrl);
 
 ### `checkServiceStatus()`
 
-Check if the AmbirScan Web Connect service and desktop app are running.
+Check if the AmbirScan Web Connect service is running and ready to scan. On Windows this means both the Windows Service and the Desktop App; on macOS, the single background service.
 
 ```javascript
 const isAvailable = await scanner.checkServiceStatus();
@@ -54,9 +54,9 @@ const version = await scanner.getVersion();
 | Field | Type | Description |
 |-------|------|-------------|
 | `productName` | `string` | Product display name |
-| `serviceVersion` | `string` | Version of the Windows Service (always available) |
-| `desktopVersion` | `string` | Version of the Desktop app (only when connected) |
-| `desktopAppConnected` | `boolean` | Whether the desktop app is currently connected |
+| `serviceVersion` | `string` | Version of the local scanning service (always available) |
+| `desktopVersion` | `string` | Windows: version of the Desktop app (only when connected). macOS: same as `serviceVersion` |
+| `desktopAppConnected` | `boolean` | Windows: whether the Desktop App is currently connected. macOS: always `true` |
 | `legacy` | `boolean` | `true` when the client predates the version endpoint (a `404`), indicating an older install that should be updated |
 
 ```javascript
@@ -72,7 +72,7 @@ if (version.legacy) {
 
 ### `getSources()`
 
-Get a list of available TWAIN scanners.
+Get a list of available scanners.
 
 ```javascript
 const sources = await scanner.getSources();
@@ -183,16 +183,32 @@ const images = await scanner.scan({
 | `resolution` | `number` | `200` | Scan resolution in DPI |
 | `colorMode` | `string` | `'Grayscale'` | `'Color'`, `'Grayscale'`, or `'BlackAndWhite'` |
 | `duplexMode` | `string` | `'Simplex'` | `'Simplex'`, `'DuplexLongEdge'`, or `'DuplexShortEdge'` |
-| `pageSize` | `string` | `'Letter'` | `'Letter'`, `'Legal'`, `'A4'`, `'A5'`, `'Auto'` |
+| `pageSize` | `string` | `'Letter'` | `'Letter'`, `'Legal'`, `'A4'`, `'A5'`, `'A6'`, `'B5'`, `'Auto'` |
 | `autoRotate` | `boolean` | `false` | Auto-rotate pages to correct orientation |
 | `autoDeskew` | `boolean` | `true` | Auto-straighten skewed pages |
 | `autoCrop` | `boolean` | `true` | Auto-crop to page edges |
-| `outputFormat` | `string` | `'png'` | `'png'`, `'jpeg'`, `'bmp'`, `'tiff'` |
+| `outputFormat` | `string` | `'png'` | `'png'`, `'jpeg'` (or `'jpg'`), `'bmp'`, `'tiff'` (or `'tif'`). Case-insensitive. |
+| `jpegQuality` | `number` | `90` | JPEG quality, 1–100. Applies only when `outputFormat` is `'jpeg'`. |
 | `barcodeReadingEnabled` | `boolean` | `false` | Enable barcode detection ([license required](https://ambir.com/developers/)) |
 | `barcodeFilterLevel` | `string` | `'Normal'` | `'Low'`, `'Normal'`, `'High'`, `'VeryHigh'` |
+| `barcodeFormats` | `string[]` | `[]` (all) | Only look for these symbologies, e.g. `['Pdf417']`. See [Choosing Symbologies](./guides/barcode-reading.md#choosing-symbologies) |
+| `barcodeStopAfterFirst` | `boolean` | `false` | Stop reading a page as soon as one barcode is found |
 | `ocrEnabled` | `boolean` | `false` | Enable OCR text extraction ([license required](https://ambir.com/developers/)) |
 | `requestTimeoutSeconds` | `number` | `0` | Timeout in seconds (0 = no timeout) |
 | `transferMode` | `string` | *(desktop setting, native)* | `'Auto'`, `'Native'`, or `'Buffered'`. Rarely needed. See [Transfer Mode](#transfer-mode) |
+
+`colorMode`, `duplexMode`, `pageSize`, `transferMode` and `barcodeFilterLevel` values are
+case-sensitive on at least one platform — use them exactly as written above. In `scan()`, an unrecognised value silently falls back to a
+default rather than failing the scan — for example, `colorMode: 'grayscale'` produces a color
+scan. `enableAutoScan()` and the REST `/api/twain/scan` endpoint reject an invalid value with
+HTTP 400 instead.
+
+:::note Output format in 4.1.0.0
+Releases before 4.1.0.0 returned PNG for any lowercase `outputFormat` — `'jpeg'`, `'tiff'`
+and `'bmp'` included — and ignored `jpegQuality`. From 4.1.0.0 the requested format is
+returned; on Windows, JPEG is encoded at the requested `jpegQuality`. Use
+[`getVersion()`](#getversion) if you need to know which behaviour a client has.
+:::
 
 #### Transfer Mode
 
@@ -290,13 +306,23 @@ await scanner.enableAutoScan({
 });
 ```
 
-Accepts the same [scan parameters](#scan-parameters) as `scan()`. **Returns:** `{ success, message }`.
+Accepts the same [scan parameters](#scan-parameters) as `scan()`, with one exception: the
+output format is set with `imageFormat` (`'Png'`, `'Jpeg'`, `'Tiff'` or `'Bmp'`) rather than
+`outputFormat`. Auto-scan does not recognise `outputFormat` and returns PNG unless
+`imageFormat` is set. **Returns:** `{ success, message }`.
+
+Auto-scan stays on only while a page is collecting images through
+[`startAutoScan()`](#startautoscanhandlers). If nothing collects images for five minutes —
+the tab was closed, the page reloaded, or the computer slept — auto-scan switches itself off
+and discards any pages that were scanned but never delivered. Call `enableAutoScan()` again
+when the page comes back.
 
 ---
 
 ### `disableAutoScan()`
 
-Disable auto-scan mode and stop watching the paper sensor.
+Disable auto-scan mode and stop watching the paper sensor. Pages that were scanned but not
+yet delivered to the event stream are discarded.
 
 ```javascript
 await scanner.disableAutoScan();
@@ -353,6 +379,45 @@ const response = await scanner.sendCommand('getSources');
 |-----------|------|-------------|
 | `method` | `string` | TWAIN Direct method name |
 | `params` | `object` | Optional parameters |
+
+---
+
+## Platform Differences
+
+The SDK, the REST API and the request and response formats are the same on Windows and macOS —
+one web application works against both. What differs is the scanning and recognition engine
+underneath each client. A few options control features of the Windows engine that have no
+equivalent on macOS. On macOS they are **ignored, not rejected** — the scan still succeeds.
+
+### Scan options
+
+| Option | Windows | macOS |
+|--------|---------|-------|
+| `pageSize` | Applied | Ignored — the scanner's full scan area is captured |
+| `autoDeskew`, `autoCrop` | Two separate switches, when the scanner driver supports them | One combined feature: setting either turns on both, when the scanner driver supports it |
+| `autoRotate` | Applied when the scanner driver supports it | Applied when the scanner driver supports it |
+| `jpegQuality` | Applied | Ignored — the scanner driver chooses the JPEG quality |
+| `transferMode` | Applied | Ignored — not applicable on macOS |
+| `barcodeFormats`, `barcodeStopAfterFirst` | Applied | Ignored — every symbology is searched |
+| `barcodeFilterLevel` | Applied | Applied, with different thresholds. `VeryHigh` also discards barcodes shorter than six characters. |
+| `requestTimeoutSeconds: 0` | No timeout | A 300-second timeout |
+| Auto-scan | Stays on until disabled, or until no page collects images for five minutes | Same, and also switches itself off after three scans in a row that fail or return no pages |
+
+### Results and other calls
+
+| Area | Windows | macOS |
+|------|---------|-------|
+| `getSources()` | `hasFeeder`, `hasFlatbed` and `supportsDuplex` are placeholder values (`true`, `true`, `false`) until the scanner is opened | These three are `false` until the scanner is opened |
+| Barcode `barcodeType` | The 13 names in [Supported Barcode Formats](./guides/barcode-reading.md#supported-barcode-formats) | The same names, except that `UPC_A` is never reported; additional symbology names may also appear |
+| Barcode `confidence` | Calculated by the Windows client | Calculated differently, so values aren't comparable between platforms |
+| Duplicate barcodes | Removed | Not removed — the same barcode can appear twice |
+| OCR (`ocrText`) | English | The OCR language cannot be chosen in this release |
+| `getVersion()` | `serviceVersion` and `desktopVersion` are reported separately | There is no desktop app: `desktopVersion` matches `serviceVersion` and `desktopAppConnected` is always `true` |
+| Licensing and settings | Desktop app (system tray) | The admin page at `https://localhost:53052/admin` — see the [macOS Installer guide](./guides/macos-installer.md#licensing-and-settings) |
+
+Your web application cannot detect which platform it is talking to in this release. Because
+options that don't apply are ignored rather than rejected, the same scan request works on
+both.
 
 ---
 
